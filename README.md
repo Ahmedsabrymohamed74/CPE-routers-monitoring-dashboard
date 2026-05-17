@@ -12,6 +12,7 @@ Features:
 - Existing Kubernetes Secret support.
 - SOPS/Age-ready secret workflow.
 - TLS ingress and LAN/external access notes.
+- DNS-free LAN hostname via `router-dashboard.192.168.142.130.sslip.io`.
 
 ## Quick Deploy
 

@@ -22,6 +22,22 @@ kubectl -n backend create secret tls router-dashboard-tls \
 
 Do not commit certificate private keys.
 
+The current lab certificate includes these SANs:
+
+```text
+DNS:router-dashboard.lab.local
+DNS:router-dashboard.192.168.142.130.sslip.io
+IP:192.168.142.130
+```
+
+The public lab CA certificate is exported on the control-plane node:
+
+```text
+/root/router-dashboard-lab-ca.crt
+```
+
+Install that CA certificate on laptops/phones to trust the dashboard certificate.
+
 ## Better Long-Term TLS
 
 Use cert-manager if the dashboard will have a real DNS name and ACME-compatible issuer. Without Helm, this means adding cert-manager annotations to `k8s_mani/dashboard_ingress.yml`.
@@ -34,14 +50,19 @@ Current shape:
 
 - `router-dashboard` Service: `ClusterIP`
 - Traefik Service: NodePort `80:30080`, `443:30443`
-- Ingress host: `router-dashboard.lab.local`
+- Ingress hosts:
+  - `router-dashboard.lab.local`
+  - `router-dashboard.192.168.142.130.sslip.io`
 
 Access options:
 
-- `http://<node-ip>:30080` with the correct host routing if Traefik is configured for it.
+- `http://router-dashboard.192.168.142.130.sslip.io:30080`
+- `https://router-dashboard.192.168.142.130.sslip.io:30443`
 - `https://router-dashboard.lab.local` when LAN DNS resolves the host to the ingress/node address.
 
 For hostname access from phones, configure LAN DNS so `router-dashboard.lab.local` resolves to the Kubernetes node or ingress address.
+
+If your router does not support local DNS overrides, use the `sslip.io` hostname. It resolves to the embedded IP address without router DNS changes.
 
 ## Outside Access
 
