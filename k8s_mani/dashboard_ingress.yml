@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: router-dashboard
+  namespace: backend
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - router-dashboard.lab.local
+      secretName: router-dashboard-tls
+  rules:
+    - host: router-dashboard.lab.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: router-dashboard
+                port:
+                  number: 5000

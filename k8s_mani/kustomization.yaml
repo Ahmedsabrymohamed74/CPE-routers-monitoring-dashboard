@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - router-app_cm.yml
+  - router-app_dep.yml
+  - router-app_svc.yml
+  - dashboard_ingress.yml

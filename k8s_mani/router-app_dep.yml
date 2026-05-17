@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router-dashboard
+  namespace: backend
+  labels:
+    app: router-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: router-dashboard
+  template:
+    metadata:
+      labels:
+        app: router-dashboard
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: centlab-ctrl
+      containers:
+        - name: router-dashboard
+          image: registry.lab.local:5000/router-dashboard:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5000
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          envFrom:
+            - configMapRef:
+                name: router-dashboard-config
+            - secretRef:
+                name: router-dashboard-secret
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

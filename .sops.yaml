@@ -1,0 +1,3 @@
+creation_rules:
+  - path_regex: secrets/.*\.(yaml|yml|json|env)$
+    age: "AGE_PUBLIC_KEY_GOES_HERE"
