@@ -654,6 +654,18 @@
       return match ? Number(match[0]) : null;
     }
 
+    function averageMetricValue(metric, items) {
+      const values = items
+        .map(item => numericValue(item[metric.key]))
+        .filter(value => value !== null);
+
+      if (values.length === 0) {
+        return null;
+      }
+
+      return values.reduce((total, value) => total + value, 0) / values.length;
+    }
+
     function formatTimeLabel(timeValue) {
       const date = new Date(timeValue);
       if (customHistoryRange || historyRangeMinutes <= 1440) {
@@ -756,6 +768,7 @@
       const chartHeight = rect.height - padding.top - padding.bottom;
       const minValue = Math.min(...values);
       const maxValue = Math.max(...values);
+      const avgValue = values.reduce((total, value) => total + value, 0) / values.length;
       const spread = Math.max(1, maxValue - minValue);
       const displayMin = minValue - spread * 0.1;
       const displayMax = maxValue + spread * 0.1;
@@ -830,6 +843,30 @@
         ctx.stroke();
       });
 
+      [
+        { label: `max ${maxValue.toFixed(1)}`, value: maxValue },
+        { label: `min ${minValue.toFixed(1)}`, value: minValue },
+      ].forEach(marker => {
+        const y = yFor(marker.value);
+        ctx.save();
+        ctx.strokeStyle = "#d1d5db";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(rect.width - padding.right, y);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "#d1d5db";
+        ctx.font = "11px Arial";
+        ctx.fillText(
+          marker.label,
+          Math.max(padding.left + 6, rect.width - padding.right - 62),
+          y - 6,
+        );
+      });
+
       ctx.strokeStyle = metric.color;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -852,25 +889,31 @@
 
       ctx.stroke();
 
-      const minIndex = points.findIndex(point => point.value === minValue);
-      const maxIndex = points.findIndex(point => point.value === maxValue);
-      [
-        { label: `min ${minValue.toFixed(1)}`, index: minIndex, value: minValue },
-        { label: `max ${maxValue.toFixed(1)}`, index: maxIndex, value: maxValue },
-      ].forEach(marker => {
-        if (marker.index < 0) {
-          return;
-        }
+      const avgPoint = points
+        .filter(point => point.value !== null)
+        .reduce((closest, point) => {
+          if (!closest) {
+            return point;
+          }
+          return Math.abs(point.value - avgValue) < Math.abs(closest.value - avgValue)
+            ? point
+            : closest;
+        }, null);
 
-        const x = xFor(marker.index);
-        const y = yFor(marker.value);
+      if (avgPoint) {
+        const x = xFor(avgPoint.index);
+        const y = yFor(avgPoint.value);
         ctx.fillStyle = "#e5e7eb";
         ctx.font = "11px Arial";
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillText(marker.label, Math.min(x + 6, rect.width - padding.right - 54), y - 6);
-      });
+        ctx.fillText(
+          `avg ${avgValue.toFixed(1)}`,
+          Math.min(x + 6, rect.width - padding.right - 58),
+          y - 8,
+        );
+      }
 
       if (hoverIndex !== null && points[hoverIndex] && points[hoverIndex].value !== null) {
         const hoverPoint = points[hoverIndex];
@@ -922,6 +965,7 @@
       const cardRect = canvas.parentElement.getBoundingClientRect();
       tooltip.innerHTML = `
         <strong>${metric.title}: ${value} ${metric.unit}</strong><br>
+        Avg: ${averageMetricValue(metric, currentHistoryItems).toFixed(1)} ${metric.unit}<br>
         ${new Date(item.time).toLocaleString()}
       `;
       tooltip.style.display = "block";
