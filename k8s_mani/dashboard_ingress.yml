@@ -8,7 +8,7 @@ spec:
   tls:
     - hosts:
         - router-dashboard.lab.local
-        - router-dashboard.192.168.142.130.sslip.io
+        - router-dashboard.192.168.9.4.sslip.io
       secretName: router-dashboard-tls
   rules:
     - host: router-dashboard.lab.local
@@ -21,7 +21,7 @@ spec:
                 name: router-dashboard
                 port:
                   number: 5000
-    - host: router-dashboard.192.168.142.130.sslip.io
+    - host: router-dashboard.192.168.9.4.sslip.io
       http:
         paths:
           - path: /

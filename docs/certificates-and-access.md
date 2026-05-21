@@ -26,8 +26,8 @@ The current lab certificate includes these SANs:
 
 ```text
 DNS:router-dashboard.lab.local
-DNS:router-dashboard.192.168.142.130.sslip.io
-IP:192.168.142.130
+DNS:router-dashboard.192.168.9.4.sslip.io
+IP:192.168.9.4
 ```
 
 The public lab CA certificate is exported on the control-plane node:
@@ -52,12 +52,12 @@ Current shape:
 - Traefik Service: NodePort `80:30080`, `443:30443`
 - Ingress hosts:
   - `router-dashboard.lab.local`
-  - `router-dashboard.192.168.142.130.sslip.io`
+  - `router-dashboard.192.168.9.4.sslip.io`
 
 Access options:
 
-- `http://router-dashboard.192.168.142.130.sslip.io:30080`
-- `https://router-dashboard.192.168.142.130.sslip.io:30443`
+- `http://router-dashboard.192.168.9.4.sslip.io:30080`
+- `https://router-dashboard.192.168.9.4.sslip.io:30443`
 - `https://router-dashboard.lab.local` when LAN DNS resolves the host to the ingress/node address.
 
 For hostname access from phones, configure LAN DNS so `router-dashboard.lab.local` resolves to the Kubernetes node or ingress address.

@@ -6,13 +6,14 @@ Features:
 
 - Live cellular dashboard.
 - Historical RSRP, RSRQ, and SINR charts.
+- Manual speed test for latency, download, and upload metrics.
 - TimescaleDB/PostgreSQL historical storage.
 - Plain Kubernetes manifests under `k8s_mani/`.
 - GitLab CI for checks, image build, and optional deployment.
 - Existing Kubernetes Secret support.
 - SOPS/Age-ready secret workflow.
 - TLS ingress and LAN/external access notes.
-- DNS-free LAN hostname via `router-dashboard.192.168.142.130.sslip.io`.
+- DNS-free LAN hostname via `router-dashboard.192.168.9.4.sslip.io`.
 
 ## Quick Deploy
 
@@ -33,3 +34,4 @@ router-dashboard-secret
 - `docs/deployment.md`
 - `docs/secrets.md`
 - `docs/certificates-and-access.md`
+- `docs/speed-tests.md`
