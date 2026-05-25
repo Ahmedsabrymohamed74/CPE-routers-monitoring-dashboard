@@ -906,6 +906,30 @@
         value === null || value === undefined || value === "" ? "--" : value;
     }
 
+    function clearLiveMetrics() {
+      [
+        "network_type",
+        "operator",
+        "pci",
+        "cell_id",
+        "rsrp",
+        "rsrq",
+        "sinr",
+        "rssi",
+        "enodeb_id",
+        "band",
+        "earfcn",
+        "dl_bandwidth",
+        "ul_bandwidth",
+        "tac",
+        "plmn",
+        "transmode",
+        "cqi0",
+      ].forEach(id => setText(id, null));
+
+      document.getElementById("raw").textContent = "";
+    }
+
     async function loadRouters() {
       try {
         const res = await fetch("/api/routers");
@@ -1509,11 +1533,13 @@
         drawHistoryCharts(items);
         renderHistoryTable(items);
         updateHistoryRangeStatus();
+        document.getElementById("historyRangeStatus").classList.remove("error");
       } catch (err) {
         document.getElementById("historyRows").innerHTML =
           `<tr><td colspan="8" class="error">Error fetching history: ${err}</td></tr>`;
-        currentHistoryItems = [];
-        drawHistoryCharts([]);
+        document.getElementById("historyRangeStatus").classList.add("error");
+        document.getElementById("historyRangeStatus").textContent =
+          "Historical data error";
         showErrorPopup("History error", err.message || err);
       }
     }
@@ -1572,6 +1598,7 @@
         refreshHistory();
 
       } catch (err) {
+        clearLiveMetrics();
         document.getElementById("last_update").classList.add("error");
         document.getElementById("last_update").textContent =
           "Error fetching data: " + err;
