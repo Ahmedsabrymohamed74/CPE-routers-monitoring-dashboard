@@ -416,6 +416,7 @@ def history():
             "items": fetch_history(minutes=minutes, limit=limit, start=start, end=end),
         })
     except Exception as exc:
+        print(f"[!] Historical fetch error: {exc}", flush=True)
         return jsonify({
             "error": True,
             "message": str(exc),

@@ -1,4 +1,4 @@
-# Router Cellular Dashboard
+# CPE Router Dashboard
 
 Flask dashboard for Huawei and ZTE router cellular metrics.
 
