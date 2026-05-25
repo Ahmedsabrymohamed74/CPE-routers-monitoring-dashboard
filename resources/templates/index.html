@@ -935,12 +935,16 @@
         const res = await fetch("/api/routers");
         const payload = await responseJsonOrError(res);
         const select = document.getElementById("routerVendor");
-        selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
+        selectedRouterVendor = payload.active_vendor || payload.default_vendor || selectedRouterVendor;
         select.innerHTML = (payload.routers || []).map(router => `
-          <option value="${router.vendor}" ${router.vendor === selectedRouterVendor ? "selected" : ""}>
+          <option
+            value="${router.vendor}"
+            ${router.vendor === selectedRouterVendor ? "selected" : ""}
+          >
             ${router.name || router.vendor.toUpperCase()}${router.configured ? "" : " (not configured)"}
           </option>
         `).join("");
+        select.disabled = false;
       } catch (err) {
         showErrorPopup("Router list error", err.message || err);
       }

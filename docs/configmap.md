@@ -24,9 +24,15 @@ ConfigMap values are non-secret runtime settings. Passwords, usernames, session 
 
 | Key | Current value | Meaning |
 | --- | --- | --- |
-| `ROUTER_VENDOR` | `zte` | Default router selected by the dashboard and historical poller. Valid values are `huawei` and `zte`. |
+| `ACTIVE_ROUTER_VENDOR` | `zte` | Cluster-wide default router mode. Valid values are `huawei` and `zte`. This controls the default UI selection, the historical poller target, and which Kubernetes scaling overlay should be used. |
+| `ROUTER_VENDOR` | `zte` | Backward-compatible alias for `ACTIVE_ROUTER_VENDOR`. Keep it matching the active router while older deployments may still read it. |
 
 If the selected router is unavailable, the live cards clear and the dashboard shows a toast error. Historical charts remain visible.
+
+The UI dropdown remains available so a user can manually query another configured router. The active router mode is still important operationally:
+
+- `ACTIVE_ROUTER_VENDOR=huawei`: Huawei is the default and the Huawei overlay can run multiple dashboard replicas.
+- `ACTIVE_ROUTER_VENDOR=zte`: ZTE is the default and the ZTE overlay keeps the dashboard at one replica because ZTE sessions invalidate each other.
 
 ## Huawei Router
 
@@ -128,7 +134,7 @@ ALTER USER router_user WITH PASSWORD '<new-password>';
 
 ## Applying Changes
 
-After editing the ConfigMap manifest:
+For the default/base manifest:
 
 ```bash
 kubectl apply -k k8s_mani
@@ -136,4 +142,15 @@ kubectl -n backend rollout restart deployment/router-dashboard
 kubectl -n backend rollout status deployment/router-dashboard --timeout=180s
 ```
 
-Most ConfigMap values are loaded only when the container starts, so restart the Deployment after changes.
+For an explicit router mode profile:
+
+```bash
+# ZTE mode: one dashboard replica, no HPA.
+kubectl apply -k k8s_overlays/zte
+kubectl -n backend delete hpa router-dashboard --ignore-not-found
+
+# Huawei mode: minimum two dashboard replicas, HPA enabled.
+kubectl apply -k k8s_overlays/huawei
+```
+
+Most ConfigMap values are loaded only when the container starts, so restart the Deployment after plain ConfigMap changes if the applied overlay did not create a new rollout.

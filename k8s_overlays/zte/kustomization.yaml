@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../k8s_mani
+
+patches:
+  - path: router-dashboard-config-patch.yml
+  - path: router-dashboard-deployment-patch.yml
