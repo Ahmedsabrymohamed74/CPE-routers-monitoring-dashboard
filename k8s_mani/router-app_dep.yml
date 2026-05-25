@@ -15,8 +15,6 @@ spec:
       labels:
         app: router-dashboard
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: centlab-ctrl
       containers:
         - name: router-dashboard
           image: registry.lab.local:5000/router-dashboard:latest

@@ -9,16 +9,47 @@ data:
   APP_PORT: "5000"
 
   # Dashboard display
+  NETWORK_TYPE: "LTE / 4G"
+  OPERATOR_NAME: "Vodafone Egypt"
   DASHBOARD_NETWORK_TYPE: "LTE / 4G"
   DASHBOARD_OPERATOR_NAME: "Vodafone Egypt"
 
-  # Router connection
-  ROUTER_URL: "http://192.168.9.1"
+  # Default router
+  ROUTER_VENDOR: "zte"
+
+  # Huawei router
+  HUAWEI_ROUTER_URL: "http://192.168.9.1"
+  HUAWEI_ROUTER_NAME: "Huawei"
+
+  # ZTE router
+  ZTE_ROUTER_URL: "http://192.168.9.1"
+  ZTE_ROUTER_NAME: "ZTE"
+  ZTE_NETWORK_TYPE: ""
+  ZTE_OPERATOR_NAME: "Vodafone Egypt"
+  ZTE_AUTH_MODE: "zte_mf296c"
+  ZTE_AUTH_AUTO_MAX_ATTEMPTS: "3"
 
   # Historical cellular metrics
   HISTORICAL_ENABLED: "true"
   HISTORICAL_POLL_INTERVAL_SECONDS: "60"
   HISTORICAL_RETENTION_DAYS: "7"
+
+  # Speed test
+  SPEEDTEST_ENABLED: "true"
+  SPEEDTEST_SCHEDULE_ENABLED: "false"
+  SPEEDTEST_INTERVAL_SECONDS: "3600"
+  SPEEDTEST_RUN_ON_STARTUP: "false"
+  SPEEDTEST_RETENTION_DAYS: "30"
+  SPEEDTEST_HISTORY_LIMIT: "24"
+  SPEEDTEST_TIMEOUT_SECONDS: "45"
+  SPEEDTEST_LATENCY_ATTEMPTS: "3"
+  SPEEDTEST_DOWNLOAD_BYTES: "10000000"
+  SPEEDTEST_UPLOAD_BYTES: "2000000"
+  SPEEDTEST_PARALLEL_STREAMS: "4"
+  SPEEDTEST_SERVER_LOCATION: "Auto-detected Cloudflare edge"
+  SPEEDTEST_LATENCY_URL: "https://speed.cloudflare.com/cdn-cgi/trace"
+  SPEEDTEST_DOWNLOAD_URL: "https://speed.cloudflare.com/__down?bytes={bytes}"
+  SPEEDTEST_UPLOAD_URL: "https://speed.cloudflare.com/__up"
 
   # Database
   DB_HOST: "timescaledb"

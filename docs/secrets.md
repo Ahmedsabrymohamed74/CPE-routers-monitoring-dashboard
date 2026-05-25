@@ -10,11 +10,15 @@ Create the secret outside Git and keep credentials out of the repo:
 
 ```bash
 kubectl -n backend create secret generic router-dashboard-secret \
-  --from-literal=ROUTER_USERNAME=admin \
-  --from-literal=ROUTER_PASSWORD='<router-password>' \
+  --from-literal=HUAWEI_ROUTER_USERNAME=admin \
+  --from-literal=HUAWEI_ROUTER_PASSWORD='<huawei-router-password>' \
+  --from-literal=ZTE_ROUTER_USERNAME=admin \
+  --from-literal=ZTE_ROUTER_PASSWORD='<zte-router-password>' \
   --from-literal=DB_USER=router_user \
   --from-literal=DB_PASSWORD='<db-password>'
 ```
+
+`ZTE_SESSION_COOKIE` is optional and should normally be omitted. Use it only as a temporary debug override when you already have a browser-authenticated `zsidn` or `stok` value.
 
 The deployment references it directly:
 
@@ -22,6 +26,16 @@ The deployment references it directly:
 envFrom:
   - secretRef:
       name: router-dashboard-secret
+```
+
+## Local stringData Secret
+
+Use the checked-in dummy example as the starting point for a real local Secret.
+Do not commit the real file.
+
+```bash
+cp secrets/secret.example.yaml secrets/router-dashboard-secret.yaml
+kubectl apply -f secrets/router-dashboard-secret.yaml
 ```
 
 ## SOPS/Age Encrypted Secret
@@ -39,7 +53,7 @@ age-keygen -o age.key
 3. Copy the example:
 
 ```bash
-cp secrets/router-dashboard-secret.sops.yaml.example secrets/router-dashboard-secret.sops.yaml
+cp secrets/secret.example.yaml secrets/router-dashboard-secret.sops.yaml
 ```
 
 4. Edit values, then encrypt:

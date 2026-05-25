@@ -83,8 +83,24 @@ def init_db():
         raw JSONB
     );
 
+    CREATE TABLE IF NOT EXISTS speedtest_results (
+        time TIMESTAMPTZ NOT NULL DEFAULT now(),
+        latency_ms NUMERIC,
+        download_mbps NUMERIC,
+        upload_mbps NUMERIC,
+        download_bytes BIGINT,
+        upload_bytes BIGINT,
+        raw JSONB
+    );
+
     SELECT create_hypertable(
         'cellular_metrics',
+        'time',
+        if_not_exists => TRUE
+    );
+
+    SELECT create_hypertable(
+        'speedtest_results',
         'time',
         if_not_exists => TRUE
     );
@@ -159,6 +175,121 @@ def prune_metrics(retention_days):
         with conn.cursor() as cur:
             cur.execute(
                 "DELETE FROM cellular_metrics WHERE time < now() - (%s || ' days')::interval;",
+                (int(retention_days),),
+            )
+
+
+def insert_speedtest_result(data):
+    if not db_config_available():
+        return
+
+    sql = """
+    INSERT INTO speedtest_results (
+        time,
+        latency_ms,
+        download_mbps,
+        upload_mbps,
+        download_bytes,
+        upload_bytes,
+        raw
+    )
+    VALUES (
+        %(time)s::timestamptz,
+        %(latency_ms)s,
+        %(download_mbps)s,
+        %(upload_mbps)s,
+        %(download_bytes)s,
+        %(upload_bytes)s,
+        %(raw)s
+    );
+    """
+
+    row = {
+        "time": data.get("time"),
+        "latency_ms": data.get("latency_ms"),
+        "download_mbps": data.get("download_mbps"),
+        "upload_mbps": data.get("upload_mbps"),
+        "download_bytes": data.get("download_bytes"),
+        "upload_bytes": data.get("upload_bytes"),
+        "raw": Json(data),
+    }
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, row)
+
+
+def fetch_speedtest_results(minutes=1440, limit=24, start=None, end=None):
+    if not db_config_available():
+        return []
+
+    minutes = max(1, int(minutes))
+    limit = min(max(1, int(limit)), 500)
+
+    where_clause = "time >= now() - (%s || ' minutes')::interval"
+    params = [minutes]
+
+    if start and end:
+        where_clause = "time >= %s::timestamptz AND time <= %s::timestamptz"
+        params = [start, end]
+    elif start:
+        where_clause = "time >= %s::timestamptz"
+        params = [start]
+    elif end:
+        where_clause = "time <= %s::timestamptz"
+        params = [end]
+
+    sql = f"""
+    SELECT
+        time,
+        latency_ms,
+        download_mbps,
+        upload_mbps,
+        download_bytes,
+        upload_bytes,
+        raw->>'server_location' AS server_location
+    FROM speedtest_results
+    WHERE {where_clause}
+    ORDER BY time DESC
+    LIMIT %s;
+    """
+    params.append(limit)
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+
+    keys = [
+        "time",
+        "latency_ms",
+        "download_mbps",
+        "upload_mbps",
+        "download_bytes",
+        "upload_bytes",
+        "server_location",
+    ]
+
+    result = []
+    for row in rows:
+        item = dict(zip(keys, row))
+        item["time"] = item["time"].isoformat()
+        for key, value in list(item.items()):
+            if isinstance(value, Decimal):
+                item[key] = float(value)
+        result.append(item)
+
+    return result
+
+
+def prune_speedtest_results(retention_days):
+    if not db_config_available() or not retention_days:
+        return
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM speedtest_results WHERE time < now() - (%s || ' days')::interval;",
                 (int(retention_days),),
             )
 
