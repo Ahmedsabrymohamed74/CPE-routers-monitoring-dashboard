@@ -38,9 +38,7 @@ ZTE_ROUTER_USERNAME
 ZTE_ROUTER_PASSWORD
 ```
 
-## Future Router Adapters
-
-The next phase is to keep one dashboard app and move router-specific code into adapters:
+##  Router Adapters
 
 ```text
 router_clients/
