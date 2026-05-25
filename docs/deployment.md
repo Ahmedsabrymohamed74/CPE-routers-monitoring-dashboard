@@ -26,6 +26,17 @@ kubectl apply -k k8s_mani
 kubectl -n backend rollout status deployment/router-dashboard --timeout=180s
 ```
 
+Router mode overlays are available when you want the Kubernetes scaling policy to match the active router:
+
+```bash
+# ZTE mode keeps one replica because ZTE CPE sessions invalidate each other.
+kubectl apply -k k8s_overlays/zte
+kubectl -n backend delete hpa router-dashboard --ignore-not-found
+
+# Huawei mode starts with two replicas and includes an HPA.
+kubectl apply -k k8s_overlays/huawei
+```
+
 Prerequisites:
 
 - Namespace `backend`.

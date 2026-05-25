@@ -14,7 +14,8 @@ data:
   DASHBOARD_NETWORK_TYPE: "LTE / 4G"
   DASHBOARD_OPERATOR_NAME: "Vodafone Egypt"
 
-  # Default router
+  # Cluster-wide router mode
+  ACTIVE_ROUTER_VENDOR: "zte"
   ROUTER_VENDOR: "zte"
 
   # Huawei router
