@@ -14,9 +14,11 @@ k8s_mani/**/*secret*.yml
 k8s_mani/manual_sc.yml
 k8s_mani/time_db/
 secrets/*.yaml
+!secrets/*.example.yaml
 !secrets/*.sops.yaml
 !secrets/*.sops.yaml.example
 secrets/*.yml
+!secrets/*.example.yml
 !secrets/*.sops.yml
 !secrets/*.sops.yml.example
 secrets/*.env

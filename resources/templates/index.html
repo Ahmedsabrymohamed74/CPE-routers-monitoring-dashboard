@@ -40,6 +40,15 @@
       font-size: 14px;
     }
 
+    select {
+      background: #111827;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      color: #f9fafb;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+
     button {
       border: 0;
       border-radius: 10px;
@@ -82,6 +91,11 @@
       list-style: none;
       user-select: none;
       font-weight: bold;
+    }
+
+    .title-action {
+      margin-left: 14px;
+      vertical-align: middle;
     }
 
     .section-title::-webkit-details-marker {
@@ -205,6 +219,70 @@
       background: #1f2937;
       border-radius: 14px;
       padding: 18px;
+    }
+
+    .speedtest-panel {
+      background: #1f2937;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .speedtest-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .speedtest-run {
+      background: #2563eb;
+    }
+
+    .speedtest-run:hover {
+      background: #1d4ed8;
+    }
+
+    .speedtest-run:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
+    .metric-subsection {
+      margin-top: 18px;
+    }
+
+    .metric-subsection:first-child {
+      margin-top: 0;
+    }
+
+    .metric-subtitle {
+      color: #f9fafb;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      list-style: none;
+      margin: 0 0 12px;
+      user-select: none;
+    }
+
+    .metric-subtitle::-webkit-details-marker {
+      display: none;
+    }
+
+    .metric-subtitle::before {
+      content: "▾";
+      display: inline-block;
+      margin-right: 8px;
+      transition: transform 0.15s ease;
+    }
+
+    details:not([open]) > .metric-subtitle {
+      margin-bottom: 0;
+    }
+
+    details:not([open]) > .metric-subtitle::before {
+      transform: rotate(-90deg);
     }
 
     .history-toolbar {
@@ -336,6 +414,46 @@
       color: #fca5a5;
     }
 
+    .error-toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: min(420px, calc(100vw - 40px));
+      background: #7f1d1d;
+      border: 1px solid #fca5a5;
+      border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+      color: #fee2e2;
+      display: none;
+      padding: 14px 42px 14px 16px;
+      z-index: 100;
+    }
+
+    .error-toast.visible {
+      display: block;
+    }
+
+    .error-toast-title {
+      color: #ffffff;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .error-toast-message {
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .error-toast-close {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      background: transparent;
+      border-radius: 8px;
+      padding: 5px 9px;
+    }
+
     @media (max-width: 1100px) {
       .grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -387,6 +505,12 @@
   <div class="subtitle">Live cellular signal information</div>
 
   <div class="toolbar">
+    <span class="toolbar-label">Current Router:</span>
+    <select id="routerVendor">
+      <option value="huawei">Huawei</option>
+      <option value="zte">ZTE</option>
+    </select>
+
     <span class="toolbar-label">Refresh interval:</span>
 
     <button class="interval-btn" data-interval="5000">5s</button>
@@ -401,165 +525,216 @@
   <details class="dashboard-group" open>
     <summary class="section-title">General Info</summary>
 
-    <div class="grid">
-      <div class="card">
-        <div class="label">Network Type</div>
-        <div class="value" id="network_type">--</div>
-        <div class="tooltip">Shows the current radio access technology, such as LTE / 4G or 5G. Your current signal fields indicate LTE / 4G.</div>
-      </div>
+    <div class="history-panel">
+      <div class="metric-subsection">
+        <div class="grid">
+          <div class="card">
+            <div class="label">Network Type</div>
+            <div class="value" id="network_type">--</div>
+            <div class="tooltip">Shows the current radio access technology, such as LTE / 4G or 5G. Your current signal fields indicate LTE / 4G.</div>
+          </div>
 
-      <div class="card">
-        <div class="label">Operator</div>
-        <div class="value" id="operator">--</div>
-        <div class="tooltip">The mobile network provider currently serving the router. In your case this is Vodafone Egypt.</div>
-      </div>
+          <div class="card">
+            <div class="label">Operator</div>
+            <div class="value" id="operator">--</div>
+            <div class="tooltip">The mobile network provider currently serving the router. In your case this is Vodafone Egypt.</div>
+          </div>
 
-      <div class="card">
-        <div class="label">PCI</div>
-        <div class="value" id="pci">--</div>
-        <div class="tooltip">Physical Cell ID. Identifies the LTE radio sector the router is connected to. Useful when comparing serving and neighbor cells.</div>
-      </div>
+          <div class="card">
+            <div class="label">PCI</div>
+            <div class="value" id="pci">--</div>
+            <div class="tooltip">Physical Cell ID. Identifies the LTE radio sector the router is connected to. Useful when comparing serving and neighbor cells.</div>
+          </div>
 
-      <div class="card">
-        <div class="label">Cell ID</div>
-        <div class="value" id="cell_id">--</div>
-        <div class="tooltip">The serving LTE cell identifier. Useful for tracking whether the router changed to another tower or sector.</div>
-      </div>
-    </div>
-  </details>
-
-  <details class="dashboard-group" open>
-    <summary class="section-title">Signal Quality</summary>
-
-    <div class="grid">
-      <div class="card">
-        <div class="label">RSRP</div>
-        <div class="value" id="rsrp">--</div>
-        <div class="tooltip">Reference Signal Received Power. Measures LTE signal strength. Closer to 0 is stronger; for example, -77 dBm is generally good.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">RSRQ</div>
-        <div class="value" id="rsrq">--</div>
-        <div class="tooltip">Reference Signal Received Quality. Indicates signal quality and congestion/interference. Less negative is better.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">SINR</div>
-        <div class="value" id="sinr">--</div>
-        <div class="tooltip">Signal-to-Interference-plus-Noise Ratio. Higher is better. This is one of the best indicators of usable radio quality.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">RSSI</div>
-        <div class="value" id="rssi">--</div>
-        <div class="tooltip">Received Signal Strength Indicator. Total received power, including signal, interference, and noise. Useful, but less precise than RSRP/SINR.</div>
-      </div>
-    </div>
-  </details>
-
-  <details class="dashboard-group" open>
-    <summary class="section-title">Cellular Info</summary>
-
-    <div class="grid">
-      <div class="card">
-        <div class="label">eNodeB ID</div>
-        <div class="value" id="enodeb_id">--</div>
-        <div class="tooltip">LTE base station identifier. Helps identify the tower or site serving your router.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">Band / CA</div>
-        <div class="value wide-value" id="band">--</div>
-        <div class="tooltip">Shows LTE band and carrier aggregation details. Example: B1 + B3 + B8 means the router is using multiple LTE carriers together.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">EARFCN</div>
-        <div class="value wide-value" id="earfcn">--</div>
-        <div class="tooltip">E-UTRA Absolute Radio Frequency Channel Number. Identifies the LTE downlink/uplink frequency channels.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">DL / UL Bandwidth</div>
-        <div class="value wide-value">
-          <span id="dl_bandwidth">--</span> / <span id="ul_bandwidth">--</span>
+          <div class="card">
+            <div class="label">Cell ID</div>
+            <div class="value" id="cell_id">--</div>
+            <div class="tooltip">The serving LTE cell identifier. Useful for tracking whether the router changed to another tower or sector.</div>
+          </div>
         </div>
-        <div class="tooltip">Downlink and uplink LTE channel bandwidth. Higher bandwidth usually allows higher throughput if radio quality is good.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">TAC</div>
-        <div class="value" id="tac">--</div>
-        <div class="tooltip">Tracking Area Code. Used by the mobile network to group cells for mobility and paging.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">PLMN</div>
-        <div class="value" id="plmn">--</div>
-        <div class="tooltip">Public Land Mobile Network code. Identifies the country and operator. For example, Egypt MCC is 602.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">Transmission Mode</div>
-        <div class="value" id="transmode">--</div>
-        <div class="tooltip">LTE transmission mode. Indicates the MIMO/transmission scheme used by the LTE radio link.</div>
-      </div>
-
-      <div class="card">
-        <div class="label">CQI</div>
-        <div class="value" id="cqi0">--</div>
-        <div class="tooltip">Channel Quality Indicator. Higher CQI generally means the router can use more efficient modulation and coding for better throughput.</div>
       </div>
     </div>
   </details>
 
   <details class="dashboard-group" open>
-    <summary class="section-title">Historical Metrics</summary>
+    <summary class="section-title">Live Metrics</summary>
 
     <div class="history-panel">
-      <div class="history-toolbar">
-        <span class="toolbar-label">Range:</span>
-        <button class="history-range-btn" data-minutes="15">15m</button>
-        <button class="history-range-btn" data-minutes="30">30m</button>
-        <button class="history-range-btn active" data-minutes="60">1h</button>
-        <button class="history-range-btn" data-minutes="360">6h</button>
-        <button class="history-range-btn" data-minutes="1440">24h</button>
-        <button class="history-range-btn" data-minutes="4320">3d</button>
-        <button class="history-range-btn" data-minutes="10080">7d</button>
-        <button id="historyRefresh">Refresh history</button>
-        <span class="history-range-status" id="historyRangeStatus">Showing last 1h</span>
-        <div class="custom-range">
-          <span class="toolbar-label">Custom:</span>
-          <input type="datetime-local" id="historyStart">
-          <span class="toolbar-label">to</span>
-          <input type="datetime-local" id="historyEnd">
-          <button id="historyApplyCustom">Apply</button>
-        </div>
-      </div>
+      <details class="metric-subsection" open>
+        <summary class="metric-subtitle">Signal Metrics</summary>
+        <div class="grid">
+          <div class="card">
+            <div class="label">RSRP</div>
+            <div class="value" id="rsrp">--</div>
+            <div class="tooltip">Reference Signal Received Power. Measures LTE signal strength. Closer to 0 is stronger; for example, -77 dBm is generally good.</div>
+          </div>
 
-      <div class="history-chart-grid">
-        <div class="history-chart-card">
-          <div class="history-chart-title">RSRP</div>
-          <canvas class="history-chart" id="historyChartRsrp"></canvas>
-          <div class="chart-tooltip" id="historyTooltipRsrp"></div>
+          <div class="card">
+            <div class="label">RSRQ</div>
+            <div class="value" id="rsrq">--</div>
+            <div class="tooltip">Reference Signal Received Quality. Indicates signal quality and congestion/interference. Less negative is better.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">SINR</div>
+            <div class="value" id="sinr">--</div>
+            <div class="tooltip">Signal-to-Interference-plus-Noise Ratio. Higher is better. This is one of the best indicators of usable radio quality.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">RSSI</div>
+            <div class="value" id="rssi">--</div>
+            <div class="tooltip">Received Signal Strength Indicator. Total received power, including signal, interference, and noise. Useful, but less precise than RSRP/SINR.</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="metric-subsection" open>
+        <summary class="metric-subtitle">LAN Info</summary>
+        <div class="grid">
+          <div class="card">
+            <div class="label">Latency</div>
+            <div class="value" id="speedtest_latency">--</div>
+            <div class="tooltip">HTTP request latency measured against the configured speed test endpoint.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Download</div>
+            <div class="value" id="speedtest_download">--</div>
+            <div class="tooltip">Download throughput measured by fetching a configured test payload.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Upload</div>
+            <div class="value" id="speedtest_upload">--</div>
+            <div class="tooltip">Upload throughput measured by posting a configured test payload.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Server Location</div>
+            <div class="value wide-value" id="speedtest_server_location">--</div>
+            <div class="tooltip">Physical edge/server location used by the latest speed test when detected.</div>
+          </div>
         </div>
 
-        <div class="history-chart-card">
-          <div class="history-chart-title">RSRQ</div>
-          <canvas class="history-chart" id="historyChartRsrq"></canvas>
-          <div class="chart-tooltip" id="historyTooltipRsrq"></div>
+        <div class="speedtest-actions">
+          <button class="speedtest-run" id="runSpeedTest">Run speed test</button>
+          <span class="history-range-status" id="speedtestStatus">No speed test loaded</span>
+        </div>
+      </details>
+
+      <details class="metric-subsection">
+        <summary class="metric-subtitle">Tower Info</summary>
+        <div class="grid">
+          <div class="card">
+            <div class="label">eNodeB ID</div>
+            <div class="value" id="enodeb_id">--</div>
+            <div class="tooltip">LTE base station identifier. Helps identify the tower or site serving your router.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Band / CA</div>
+            <div class="value wide-value" id="band">--</div>
+            <div class="tooltip">Shows LTE band and carrier aggregation details. Example: B1 + B3 + B8 means the router is using multiple LTE carriers together.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">EARFCN</div>
+            <div class="value wide-value" id="earfcn">--</div>
+            <div class="tooltip">E-UTRA Absolute Radio Frequency Channel Number. Identifies the LTE downlink/uplink frequency channels.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">DL / UL Bandwidth</div>
+            <div class="value wide-value">
+              <span id="dl_bandwidth">--</span> / <span id="ul_bandwidth">--</span>
+            </div>
+            <div class="tooltip">Downlink and uplink LTE channel bandwidth. Higher bandwidth usually allows higher throughput if radio quality is good.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">TAC</div>
+            <div class="value" id="tac">--</div>
+            <div class="tooltip">Tracking Area Code. Used by the mobile network to group cells for mobility and paging.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">PLMN</div>
+            <div class="value" id="plmn">--</div>
+            <div class="tooltip">Public Land Mobile Network code. Identifies the country and operator. For example, Egypt MCC is 602.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Transmission Mode</div>
+            <div class="value" id="transmode">--</div>
+            <div class="tooltip">LTE transmission mode. Indicates the MIMO/transmission scheme used by the LTE radio link.</div>
+          </div>
+
+          <div class="card">
+            <div class="label">CQI</div>
+            <div class="value" id="cqi0">--</div>
+            <div class="tooltip">Channel Quality Indicator. Higher CQI generally means the router can use more efficient modulation and coding for better throughput.</div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </details>
+
+  <details class="dashboard-group" open>
+    <summary class="section-title">
+      Historical Metrics
+      <button
+        class="title-action"
+        id="syncRanges"
+        title="Sync LAN historical range to the cellular historical range. When enabled, changing the cellular range also updates the LAN range."
+      >Sync ranges</button>
+    </summary>
+
+    <div class="history-panel">
+      <div class="metric-subsection">
+        <h2 class="metric-subtitle">Cellular Metrics</h2>
+        <div class="history-toolbar">
+          <span class="toolbar-label">Range:</span>
+          <button class="history-range-btn" data-minutes="15">15m</button>
+          <button class="history-range-btn" data-minutes="30">30m</button>
+          <button class="history-range-btn active" data-minutes="60">1h</button>
+          <button class="history-range-btn" data-minutes="360">6h</button>
+          <button class="history-range-btn" data-minutes="1440">24h</button>
+          <button class="history-range-btn" data-minutes="4320">3d</button>
+          <button class="history-range-btn" data-minutes="10080">7d</button>
+          <span class="history-range-status" id="historyRangeStatus">Showing last 1h</span>
+          <div class="custom-range">
+            <span class="toolbar-label">Custom:</span>
+            <input type="datetime-local" id="historyStart">
+            <span class="toolbar-label">to</span>
+            <input type="datetime-local" id="historyEnd">
+            <button id="historyApplyCustom">Apply</button>
+          </div>
         </div>
 
-        <div class="history-chart-card">
-          <div class="history-chart-title">SINR</div>
-          <canvas class="history-chart" id="historyChartSinr"></canvas>
-          <div class="chart-tooltip" id="historyTooltipSinr"></div>
+        <div class="history-chart-grid">
+          <div class="history-chart-card">
+            <div class="history-chart-title">RSRP</div>
+            <canvas class="history-chart" id="historyChartRsrp"></canvas>
+            <div class="chart-tooltip" id="historyTooltipRsrp"></div>
+          </div>
+
+          <div class="history-chart-card">
+            <div class="history-chart-title">RSRQ</div>
+            <canvas class="history-chart" id="historyChartRsrq"></canvas>
+            <div class="chart-tooltip" id="historyTooltipRsrq"></div>
+          </div>
+
+          <div class="history-chart-card">
+            <div class="history-chart-title">SINR</div>
+            <canvas class="history-chart" id="historyChartSinr"></canvas>
+            <div class="chart-tooltip" id="historyTooltipSinr"></div>
+          </div>
         </div>
       </div>
 
       <details class="history-table-details">
-        <summary>Historical samples</summary>
+        <summary>Historical cellular samples</summary>
         <div class="history-table-wrap">
           <table class="history-table">
             <thead>
@@ -580,6 +755,67 @@
           </table>
         </div>
       </details>
+
+      <div class="metric-subsection">
+        <h2 class="metric-subtitle">LAN Metrics</h2>
+        <div class="history-toolbar">
+          <span class="toolbar-label">Range:</span>
+          <button class="lan-range-btn" data-minutes="15">15m</button>
+          <button class="lan-range-btn" data-minutes="30">30m</button>
+          <button class="lan-range-btn" data-minutes="60">1h</button>
+          <button class="lan-range-btn" data-minutes="360">6h</button>
+          <button class="lan-range-btn active" data-minutes="1440">24h</button>
+          <button class="lan-range-btn" data-minutes="4320">3d</button>
+          <button class="lan-range-btn" data-minutes="10080">7d</button>
+          <span class="history-range-status" id="lanRangeStatus">Showing last 24h</span>
+          <div class="custom-range">
+            <span class="toolbar-label">Custom:</span>
+            <input type="datetime-local" id="lanStart">
+            <span class="toolbar-label">to</span>
+            <input type="datetime-local" id="lanEnd">
+            <button id="lanApplyCustom">Apply</button>
+          </div>
+        </div>
+
+        <div class="history-chart-grid">
+          <div class="history-chart-card">
+            <div class="history-chart-title">Latency</div>
+            <canvas class="history-chart" id="lanChartLatency"></canvas>
+            <div class="chart-tooltip" id="lanTooltipLatency"></div>
+          </div>
+
+          <div class="history-chart-card">
+            <div class="history-chart-title">Download</div>
+            <canvas class="history-chart" id="lanChartDownload"></canvas>
+            <div class="chart-tooltip" id="lanTooltipDownload"></div>
+          </div>
+
+          <div class="history-chart-card">
+            <div class="history-chart-title">Upload</div>
+            <canvas class="history-chart" id="lanChartUpload"></canvas>
+            <div class="chart-tooltip" id="lanTooltipUpload"></div>
+          </div>
+        </div>
+
+        <details class="history-table-details">
+          <summary>LAN metrics samples</summary>
+          <div class="history-table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Latency</th>
+                  <th>Download</th>
+                  <th>Upload</th>
+                </tr>
+              </thead>
+              <tbody id="speedtestRows">
+                <tr><td colspan="4">No speed tests yet</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
     </div>
   </details>
 
@@ -591,13 +827,25 @@
     <pre id="raw"></pre>
   </details>
 
+  <div class="error-toast" id="errorToast" role="alert" aria-live="assertive">
+    <button class="error-toast-close" id="errorToastClose" title="Dismiss">x</button>
+    <div class="error-toast-title" id="errorToastTitle">Dashboard error</div>
+    <div class="error-toast-message" id="errorToastMessage"></div>
+  </div>
+
   <script>
     let refreshIntervalMs = 15000;
     let historyRangeMinutes = 60;
     let customHistoryRange = null;
+    let lanRangeMinutes = 1440;
+    let customLanRange = null;
+    let syncRangesEnabled = false;
+    let selectedRouterVendor = "huawei";
     let refreshTimer = null;
     let isFetching = false;
     let currentHistoryItems = [];
+    let currentSpeedTestItems = [];
+    let lastErrorMessage = null;
 
     const historyMetrics = [
       {
@@ -626,9 +874,199 @@
       },
     ];
 
+    const lanMetrics = [
+      {
+        canvasId: "lanChartLatency",
+        tooltipId: "lanTooltipLatency",
+        key: "latency_ms",
+        title: "Latency",
+        unit: "ms",
+        color: "#a78bfa",
+      },
+      {
+        canvasId: "lanChartDownload",
+        tooltipId: "lanTooltipDownload",
+        key: "download_mbps",
+        title: "Download",
+        unit: "Mbps",
+        color: "#22c55e",
+      },
+      {
+        canvasId: "lanChartUpload",
+        tooltipId: "lanTooltipUpload",
+        key: "upload_mbps",
+        title: "Upload",
+        unit: "Mbps",
+        color: "#fb7185",
+      },
+    ];
+
     function setText(id, value) {
       document.getElementById(id).textContent =
         value === null || value === undefined || value === "" ? "--" : value;
+    }
+
+    async function loadRouters() {
+      try {
+        const res = await fetch("/api/routers");
+        const payload = await responseJsonOrError(res);
+        const select = document.getElementById("routerVendor");
+        selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
+        select.innerHTML = (payload.routers || []).map(router => `
+          <option value="${router.vendor}" ${router.vendor === selectedRouterVendor ? "selected" : ""}>
+            ${router.name || router.vendor.toUpperCase()}${router.configured ? "" : " (not configured)"}
+          </option>
+        `).join("");
+      } catch (err) {
+        showErrorPopup("Router list error", err.message || err);
+      }
+    }
+
+    function showErrorPopup(title, message) {
+      const displayMessage = String(message || "Unknown error");
+      const dedupeKey = `${title}: ${displayMessage}`;
+      lastErrorMessage = dedupeKey;
+      document.getElementById("errorToastTitle").textContent = title;
+      document.getElementById("errorToastMessage").textContent = displayMessage;
+      document.getElementById("errorToast").classList.add("visible");
+    }
+
+    function hideErrorPopup() {
+      document.getElementById("errorToast").classList.remove("visible");
+      lastErrorMessage = null;
+    }
+
+    async function responseJsonOrError(res) {
+      let payload = null;
+      try {
+        payload = await res.json();
+      } catch (err) {
+        payload = null;
+      }
+
+      if (!res.ok) {
+        throw new Error(payload?.message || `HTTP ${res.status}`);
+      }
+
+      if (payload?.error) {
+        throw new Error(payload.message || "API returned an error");
+      }
+
+      return payload;
+    }
+
+    function hasCellularPayloadData(data) {
+      return [
+        "pci",
+        "cell_id",
+        "enodeb_id",
+        "rsrp",
+        "rsrq",
+        "sinr",
+        "rssi",
+        "band",
+        "earfcn",
+      ].some(key => data[key] !== null && data[key] !== undefined && data[key] !== "");
+    }
+
+    function formatSpeed(value) {
+      return value === null || value === undefined ? "--" : `${Number(value).toFixed(2)} Mbps`;
+    }
+
+    function formatLatency(value) {
+      return value === null || value === undefined ? "--" : `${Number(value).toFixed(1)} ms`;
+    }
+
+    function updateSpeedTestCards(result) {
+      if (!result) {
+        setText("speedtest_latency", null);
+        setText("speedtest_download", null);
+        setText("speedtest_upload", null);
+        return;
+      }
+
+      setText("speedtest_latency", formatLatency(result.latency_ms));
+      setText("speedtest_download", formatSpeed(result.download_mbps));
+      setText("speedtest_upload", formatSpeed(result.upload_mbps));
+    }
+
+    function renderSpeedTestTable(items) {
+      const rows = document.getElementById("speedtestRows");
+
+      if (!items || items.length === 0) {
+        rows.innerHTML = '<tr><td colspan="4">No speed tests yet</td></tr>';
+        return;
+      }
+
+      rows.innerHTML = items.map(item => `
+        <tr>
+          <td>${new Date(item.time).toLocaleString()}</td>
+          <td>${formatLatency(item.latency_ms)}</td>
+          <td>${formatSpeed(item.download_mbps)}</td>
+          <td>${formatSpeed(item.upload_mbps)}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function refreshSpeedTest() {
+      try {
+        const params = new URLSearchParams({ limit: "500" });
+        if (customLanRange) {
+          params.set("start", customLanRange.start);
+          params.set("end", customLanRange.end);
+        } else {
+          params.set("minutes", String(lanRangeMinutes));
+        }
+
+        const res = await fetch(`/api/speedtest?${params.toString()}`);
+        const payload = await responseJsonOrError(res);
+        const items = payload.items || [];
+        currentSpeedTestItems = [...items].reverse();
+
+        updateSpeedTestCards(payload.latest);
+        const serverLocation = payload.latest?.server_location || payload.server_location;
+        setText("speedtest_server_location", serverLocation);
+        renderSpeedTestTable(items);
+        drawLanCharts(currentSpeedTestItems);
+        updateLanRangeStatus();
+
+        const status = payload.running
+          ? "Speed test running..."
+          : payload.schedule_enabled
+            ? `Scheduled every ${Math.round(payload.interval_seconds / 60)} minutes`
+            : "Scheduled speed tests disabled";
+        document.getElementById("speedtestStatus").classList.remove("error");
+        document.getElementById("speedtestStatus").textContent = status;
+        document.getElementById("runSpeedTest").disabled = Boolean(payload.running || !payload.enabled);
+      } catch (err) {
+        document.getElementById("speedtestStatus").textContent =
+          "Error loading speed test: " + err;
+        document.getElementById("speedtestStatus").classList.add("error");
+        showErrorPopup("Speed test error", err.message || err);
+      }
+    }
+
+    async function runSpeedTest() {
+      const button = document.getElementById("runSpeedTest");
+      const status = document.getElementById("speedtestStatus");
+      button.disabled = true;
+      status.classList.remove("error");
+      status.textContent = "Running speed test...";
+
+      try {
+        const res = await fetch("/api/speedtest/run", { method: "POST" });
+        const payload = await responseJsonOrError(res);
+
+        updateSpeedTestCards(payload);
+        status.textContent = "Speed test complete";
+        await refreshSpeedTest();
+      } catch (err) {
+        status.classList.add("error");
+        status.textContent = "Speed test failed: " + err;
+        showErrorPopup("Speed test failed", err.message || err);
+      } finally {
+        button.disabled = false;
+      }
     }
 
     function updateIntervalStatus() {
@@ -697,6 +1135,19 @@
         `Showing last ${formatRangeLabel(historyRangeMinutes)}`;
     }
 
+    function updateLanRangeStatus() {
+      if (customLanRange) {
+        const start = new Date(customLanRange.start).toLocaleString();
+        const end = new Date(customLanRange.end).toLocaleString();
+        document.getElementById("lanRangeStatus").textContent =
+          `${start} to ${end}`;
+        return;
+      }
+
+      document.getElementById("lanRangeStatus").textContent =
+        `Showing last ${formatRangeLabel(lanRangeMinutes)}`;
+    }
+
     function localDateTimeValue(date) {
       const offsetMs = date.getTimezoneOffset() * 60000;
       return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
@@ -707,11 +1158,13 @@
       const start = new Date(end.getTime() - 60 * 60 * 1000);
       document.getElementById("historyStart").value = localDateTimeValue(start);
       document.getElementById("historyEnd").value = localDateTimeValue(end);
+      document.getElementById("lanStart").value = localDateTimeValue(start);
+      document.getElementById("lanEnd").value = localDateTimeValue(end);
     }
 
-    function customRangeFromInputs() {
-      const startValue = document.getElementById("historyStart").value;
-      const endValue = document.getElementById("historyEnd").value;
+    function customRangeFromInputs(startId, endId) {
+      const startValue = document.getElementById(startId).value;
+      const endValue = document.getElementById(endId).value;
 
       if (!startValue || !endValue) {
         throw new Error("Choose both start and end time");
@@ -732,6 +1185,34 @@
         start: start.toISOString(),
         end: end.toISOString(),
       };
+    }
+
+    function setActiveLanRangeButton(minutes) {
+      document.querySelectorAll(".lan-range-btn").forEach(button => {
+        const buttonMinutes = Number(button.dataset.minutes);
+        button.classList.toggle("active", buttonMinutes === minutes);
+      });
+    }
+
+    function syncLanRangeToCellular() {
+      if (customHistoryRange) {
+        customLanRange = { ...customHistoryRange };
+        document.querySelectorAll(".lan-range-btn").forEach(item => {
+          item.classList.remove("active");
+        });
+      } else {
+        customLanRange = null;
+        lanRangeMinutes = historyRangeMinutes;
+        setActiveLanRangeButton(lanRangeMinutes);
+      }
+      updateLanRangeStatus();
+      refreshSpeedTest();
+    }
+
+    function updateSyncRangesButton() {
+      const button = document.getElementById("syncRanges");
+      button.classList.toggle("active", syncRangesEnabled);
+      button.textContent = syncRangesEnabled ? "Ranges synced" : "Sync ranges";
     }
 
     function drawMetricChart(metric, items, hoverIndex = null) {
@@ -938,8 +1419,12 @@
       historyMetrics.forEach(metric => drawMetricChart(metric, items, hoverIndex));
     }
 
-    function nearestHistoryIndex(canvas, event) {
-      if (currentHistoryItems.length < 2) {
+    function drawLanCharts(items, hoverIndex = null) {
+      lanMetrics.forEach(metric => drawMetricChart(metric, items, hoverIndex));
+    }
+
+    function nearestMetricIndex(canvas, event, items) {
+      if (items.length < 2) {
         return null;
       }
 
@@ -948,13 +1433,13 @@
       const chartWidth = rect.width - padding.left - padding.right;
       const x = event.clientX - rect.left;
       const ratio = Math.min(1, Math.max(0, (x - padding.left) / chartWidth));
-      return Math.round(ratio * (currentHistoryItems.length - 1));
+      return Math.round(ratio * (items.length - 1));
     }
 
-    function showChartTooltip(metric, index, event) {
+    function showChartTooltip(metric, index, event, items) {
       const tooltip = document.getElementById(metric.tooltipId);
       const canvas = document.getElementById(metric.canvasId);
-      const item = currentHistoryItems[index];
+      const item = items[index];
       const value = item ? numericValue(item[metric.key]) : null;
 
       if (!item || value === null) {
@@ -965,7 +1450,7 @@
       const cardRect = canvas.parentElement.getBoundingClientRect();
       tooltip.innerHTML = `
         <strong>${metric.title}: ${value} ${metric.unit}</strong><br>
-        Avg: ${averageMetricValue(metric, currentHistoryItems).toFixed(1)} ${metric.unit}<br>
+        Avg: ${averageMetricValue(metric, items).toFixed(1)} ${metric.unit}<br>
         ${new Date(item.time).toLocaleString()}
       `;
       tooltip.style.display = "block";
@@ -977,7 +1462,11 @@
       historyMetrics.forEach(metric => {
         document.getElementById(metric.tooltipId).style.display = "none";
       });
+      lanMetrics.forEach(metric => {
+        document.getElementById(metric.tooltipId).style.display = "none";
+      });
       drawHistoryCharts(currentHistoryItems);
+      drawLanCharts(currentSpeedTestItems);
     }
 
     function renderHistoryTable(items) {
@@ -1014,12 +1503,7 @@
         }
 
         const res = await fetch(`/api/history?${params.toString()}`);
-
-        if (!res.ok) {
-          throw new Error("HTTP " + res.status);
-        }
-
-        const payload = await res.json();
+        const payload = await responseJsonOrError(res);
         const items = payload.items || [];
         currentHistoryItems = items;
         drawHistoryCharts(items);
@@ -1030,6 +1514,7 @@
           `<tr><td colspan="8" class="error">Error fetching history: ${err}</td></tr>`;
         currentHistoryItems = [];
         drawHistoryCharts([]);
+        showErrorPopup("History error", err.message || err);
       }
     }
 
@@ -1048,13 +1533,13 @@
       isFetching = true;
 
       try {
-        const res = await fetch("/api/cellular");
+        const params = new URLSearchParams({ vendor: selectedRouterVendor });
+        const res = await fetch(`/api/cellular?${params.toString()}`);
+        const data = await responseJsonOrError(res);
 
-        if (!res.ok) {
-          throw new Error("HTTP " + res.status);
+        if (!hasCellularPayloadData(data)) {
+          throw new Error("No cellular signal data returned by router");
         }
-
-        const data = await res.json();
 
         setText("network_type", data.network_type);
         setText("operator", data.operator);
@@ -1079,6 +1564,7 @@
         document.getElementById("last_update").classList.remove("error");
         document.getElementById("last_update").textContent =
           "Last update: " + new Date().toLocaleTimeString();
+        hideErrorPopup();
 
         document.getElementById("raw").textContent =
           JSON.stringify(data.raw_signal, null, 2);
@@ -1089,10 +1575,13 @@
         document.getElementById("last_update").classList.add("error");
         document.getElementById("last_update").textContent =
           "Error fetching data: " + err;
+        showErrorPopup("Router data error", err.message || err);
       } finally {
         isFetching = false;
       }
     }
+
+    document.getElementById("errorToastClose").addEventListener("click", hideErrorPopup);
 
     document.querySelectorAll(".interval-btn").forEach(button => {
       button.addEventListener("click", () => {
@@ -1106,6 +1595,15 @@
       refreshData();
     });
 
+    document.getElementById("routerVendor").addEventListener("change", event => {
+      selectedRouterVendor = event.target.value;
+      refreshData();
+    });
+
+    document.getElementById("runSpeedTest").addEventListener("click", () => {
+      runSpeedTest();
+    });
+
     document.querySelectorAll(".history-range-btn").forEach(button => {
       button.addEventListener("click", () => {
         historyRangeMinutes = Number(button.dataset.minutes);
@@ -1115,24 +1613,63 @@
         });
         updateHistoryRangeStatus();
         refreshHistory();
+        if (syncRangesEnabled) {
+          syncLanRangeToCellular();
+        }
       });
-    });
-
-    document.getElementById("historyRefresh").addEventListener("click", () => {
-      refreshHistory();
     });
 
     document.getElementById("historyApplyCustom").addEventListener("click", () => {
       try {
-        customHistoryRange = customRangeFromInputs();
+        customHistoryRange = customRangeFromInputs("historyStart", "historyEnd");
         document.querySelectorAll(".history-range-btn").forEach(item => {
           item.classList.remove("active");
         });
         updateHistoryRangeStatus();
         refreshHistory();
+        if (syncRangesEnabled) {
+          syncLanRangeToCellular();
+        }
       } catch (err) {
         document.getElementById("historyRows").innerHTML =
           `<tr><td colspan="8" class="error">${err}</td></tr>`;
+      }
+    });
+
+    document.getElementById("syncRanges").addEventListener("click", event => {
+      event.stopPropagation();
+      syncRangesEnabled = !syncRangesEnabled;
+      updateSyncRangesButton();
+      if (syncRangesEnabled) {
+        syncLanRangeToCellular();
+      }
+    });
+
+    document.querySelectorAll(".lan-range-btn").forEach(button => {
+      button.addEventListener("click", () => {
+        syncRangesEnabled = false;
+        updateSyncRangesButton();
+        lanRangeMinutes = Number(button.dataset.minutes);
+        customLanRange = null;
+        setActiveLanRangeButton(lanRangeMinutes);
+        updateLanRangeStatus();
+        refreshSpeedTest();
+      });
+    });
+
+    document.getElementById("lanApplyCustom").addEventListener("click", () => {
+      try {
+        syncRangesEnabled = false;
+        updateSyncRangesButton();
+        customLanRange = customRangeFromInputs("lanStart", "lanEnd");
+        document.querySelectorAll(".lan-range-btn").forEach(item => {
+          item.classList.remove("active");
+        });
+        updateLanRangeStatus();
+        refreshSpeedTest();
+      } catch (err) {
+        document.getElementById("speedtestRows").innerHTML =
+          `<tr><td colspan="4" class="error">${err}</td></tr>`;
       }
     });
 
@@ -1140,21 +1677,40 @@
       const canvas = document.getElementById(metric.canvasId);
 
       canvas.addEventListener("mousemove", event => {
-        const index = nearestHistoryIndex(canvas, event);
+        const index = nearestMetricIndex(canvas, event, currentHistoryItems);
         if (index === null) {
           return;
         }
 
         drawHistoryCharts(currentHistoryItems, index);
-        showChartTooltip(metric, index, event);
+        showChartTooltip(metric, index, event, currentHistoryItems);
       });
 
       canvas.addEventListener("mouseleave", hideChartTooltips);
     });
 
-    refreshData();
+    lanMetrics.forEach(metric => {
+      const canvas = document.getElementById(metric.canvasId);
+
+      canvas.addEventListener("mousemove", event => {
+        const index = nearestMetricIndex(canvas, event, currentSpeedTestItems);
+        if (index === null) {
+          return;
+        }
+
+        drawLanCharts(currentSpeedTestItems, index);
+        showChartTooltip(metric, index, event, currentSpeedTestItems);
+      });
+
+      canvas.addEventListener("mouseleave", hideChartTooltips);
+    });
+
+    loadRouters().then(refreshData);
+    refreshSpeedTest();
     setDefaultCustomRange();
     updateHistoryRangeStatus();
+    updateLanRangeStatus();
+    updateSyncRangesButton();
     refreshHistory();
     startRefreshTimer();
     window.addEventListener("resize", refreshHistory);

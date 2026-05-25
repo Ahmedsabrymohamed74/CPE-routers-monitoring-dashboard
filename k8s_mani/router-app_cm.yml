@@ -9,11 +9,25 @@ data:
   APP_PORT: "5000"
 
   # Dashboard display
+  NETWORK_TYPE: "LTE / 4G"
+  OPERATOR_NAME: "Vodafone Egypt"
   DASHBOARD_NETWORK_TYPE: "LTE / 4G"
   DASHBOARD_OPERATOR_NAME: "Vodafone Egypt"
 
-  # Router connection
-  ROUTER_URL: "http://192.168.9.1"
+  # Default router
+  ROUTER_VENDOR: "zte"
+
+  # Huawei router
+  HUAWEI_ROUTER_URL: "http://192.168.9.1"
+  HUAWEI_ROUTER_NAME: "Huawei"
+
+  # ZTE router
+  ZTE_ROUTER_URL: "http://192.168.9.1"
+  ZTE_ROUTER_NAME: "ZTE"
+  ZTE_NETWORK_TYPE: ""
+  ZTE_OPERATOR_NAME: "Vodafone Egypt"
+  ZTE_AUTH_MODE: "zte_mf296c"
+  ZTE_AUTH_AUTO_MAX_ATTEMPTS: "3"
 
   # Historical cellular metrics
   HISTORICAL_ENABLED: "true"
