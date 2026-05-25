@@ -66,5 +66,6 @@ Live router data is available from:
 
 - `docs/deployment.md`
 - `docs/secrets.md`
+- `docs/configmap.md`
 - `docs/certificates-and-access.md`
 - `docs/speed-tests.md`
