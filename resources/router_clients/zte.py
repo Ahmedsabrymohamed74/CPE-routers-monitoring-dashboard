@@ -289,6 +289,33 @@ class ZteRouterClient(BaseRouterClient):
         result = str(payload.get("result", "")).lower()
         return result in {"0", "ok", "success"} or payload.get("success") is True
 
+    @classmethod
+    def _has_signal_payload(cls, payload):
+        signal_fields = (
+            "network_type",
+            "lte_rsrp",
+            "Z5g_rsrp",
+            "rsrq",
+            "Z_rsrq",
+            "lte_rsrq",
+            "sinr",
+            "Z5g_SINR",
+            "Z5g_snr",
+            "rssi",
+            "Z_PCI",
+            "Z5g_PCI",
+            "cell_id",
+            "Z5g_CELL_ID",
+            "ZCELLINFO_band",
+            "Z5g_CELLINFO_band",
+        )
+        return any(cls.clean_value(payload.get(field)) is not None for field in signal_fields)
+
+    def _reset_auth(self):
+        self.session_cookie = None
+        self.session_cookie_name = None
+        self.session.cookies.clear()
+
     def login(self):
         challenge = self._auth_context()
         errors = []
@@ -340,19 +367,23 @@ class ZteRouterClient(BaseRouterClient):
         if payload.get("result") == "failure" or payload.get("error"):
             if retried_auth:
                 raise RuntimeError(f"ZTE router request failed after login: {payload}")
-            self.session_cookie = None
+            self._reset_auth()
             self.login()
             return self.get_signal(retried_auth=True)
 
         if str(payload.get("result", "")).lower() in {"login", "nologin", "not_login"}:
             if retried_auth:
                 raise RuntimeError(f"ZTE router still requires login after authentication: {payload}")
-            self.session_cookie = None
+            self._reset_auth()
             self.login()
             return self.get_signal(retried_auth=True)
 
-        if "network_type" not in payload and "lte_rsrp" not in payload:
-            raise RuntimeError(f"ZTE router request failed: {payload}")
+        if not self._has_signal_payload(payload):
+            if retried_auth:
+                raise RuntimeError(f"ZTE router returned no signal data after login: {payload}")
+            self._reset_auth()
+            self.login()
+            return self.get_signal(retried_auth=True)
 
         return payload
 
