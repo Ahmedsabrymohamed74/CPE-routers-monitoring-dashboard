@@ -935,7 +935,7 @@
         const res = await fetch("/api/routers");
         const payload = await responseJsonOrError(res);
         const select = document.getElementById("routerVendor");
-        selectedRouterVendor = payload.active_vendor || payload.default_vendor || selectedRouterVendor;
+        selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
         select.innerHTML = (payload.routers || []).map(router => `
           <option
             value="${router.vendor}"

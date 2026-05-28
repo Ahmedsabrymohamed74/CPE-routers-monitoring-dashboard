@@ -54,6 +54,7 @@ class ZteRouterClient(BaseRouterClient):
         session_cookie=None,
         auth_mode="zte_mf296c",
         auto_max_attempts=3,
+        session_ttl_seconds=300,
         router_name=None,
         **kwargs,
     ):
@@ -64,6 +65,8 @@ class ZteRouterClient(BaseRouterClient):
         self.session_cookie = self._normalize_session_cookie(session_cookie)
         self.auth_mode = (auth_mode or "auto").strip().lower()
         self.auto_max_attempts = max(1, int(auto_max_attempts or 1))
+        self.session_ttl_seconds = max(60, int(session_ttl_seconds or 300))
+        self.authenticated_at = None
         self.session = requests.Session()
         self.session.verify = False
 
@@ -105,8 +108,12 @@ class ZteRouterClient(BaseRouterClient):
         return value.strip().strip('"')
 
     def _require_session_cookie(self):
-        if self.session_cookie:
+        if self.session_cookie and not self._session_expired():
             return
+
+        if self.session_cookie:
+            print("[*] ZTE session TTL expired; renewing login", flush=True)
+            self._reset_auth()
 
         self.login()
 
@@ -311,10 +318,26 @@ class ZteRouterClient(BaseRouterClient):
         )
         return any(cls.clean_value(payload.get(field)) is not None for field in signal_fields)
 
+    @classmethod
+    def _payload_summary(cls, payload):
+        return {
+            "keys": sorted(payload.keys()),
+            "result": payload.get("result"),
+            "error": payload.get("error"),
+            "network_type": payload.get("network_type"),
+            "has_signal": cls._has_signal_payload(payload),
+        }
+
     def _reset_auth(self):
         self.session_cookie = None
         self.session_cookie_name = None
+        self.authenticated_at = None
         self.session.cookies.clear()
+
+    def _session_expired(self):
+        if self.authenticated_at is None:
+            return False
+        return time.monotonic() - self.authenticated_at >= self.session_ttl_seconds
 
     def login(self):
         challenge = self._auth_context()
@@ -337,6 +360,7 @@ class ZteRouterClient(BaseRouterClient):
                 self._extract_session_cookie(response)
 
                 if self._login_succeeded(payload):
+                    self.authenticated_at = time.monotonic()
                     print(f"[*] ZTE login succeeded using auth mode {mode}", flush=True)
                     return True
 
@@ -367,6 +391,7 @@ class ZteRouterClient(BaseRouterClient):
         if payload.get("result") == "failure" or payload.get("error"):
             if retried_auth:
                 raise RuntimeError(f"ZTE router request failed after login: {payload}")
+            print(f"[!] ZTE signal request returned error payload: {self._payload_summary(payload)}", flush=True)
             self._reset_auth()
             self.login()
             return self.get_signal(retried_auth=True)
@@ -374,6 +399,7 @@ class ZteRouterClient(BaseRouterClient):
         if str(payload.get("result", "")).lower() in {"login", "nologin", "not_login"}:
             if retried_auth:
                 raise RuntimeError(f"ZTE router still requires login after authentication: {payload}")
+            print(f"[!] ZTE signal request requires login: {self._payload_summary(payload)}", flush=True)
             self._reset_auth()
             self.login()
             return self.get_signal(retried_auth=True)
@@ -381,11 +407,39 @@ class ZteRouterClient(BaseRouterClient):
         if not self._has_signal_payload(payload):
             if retried_auth:
                 raise RuntimeError(f"ZTE router returned no signal data after login: {payload}")
+            print(f"[!] ZTE signal response had no signal fields: {self._payload_summary(payload)}", flush=True)
             self._reset_auth()
             self.login()
             return self.get_signal(retried_auth=True)
 
         return payload
+
+    def build_payload(self, operator_name=None, network_type=None, retried_auth=False):
+        signal = self.get_signal()
+        payload = self.normalize_signal(
+            signal,
+            operator_name=operator_name,
+            network_type=network_type,
+        )
+
+        if self.has_cellular_data(payload):
+            return payload
+
+        print(
+            f"[!] ZTE normalized payload had no cellular data: {self._payload_summary(signal)}",
+            flush=True,
+        )
+
+        if retried_auth:
+            raise RuntimeError(f"No cellular signal data returned by {self.vendor} router")
+
+        self._reset_auth()
+        self.login()
+        return self.build_payload(
+            operator_name=operator_name,
+            network_type=network_type,
+            retried_auth=True,
+        )
 
     def normalize_signal(self, signal, operator_name=None, network_type=None):
         pcell_band = self.clean_value(signal.get("lte_ca_pcell_band"))

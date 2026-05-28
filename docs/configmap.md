@@ -24,15 +24,14 @@ ConfigMap values are non-secret runtime settings. Passwords, usernames, session 
 
 | Key | Current value | Meaning |
 | --- | --- | --- |
-| `ACTIVE_ROUTER_VENDOR` | `zte` | Cluster-wide default router mode. Valid values are `huawei` and `zte`. This controls the default UI selection, the historical poller target, and which Kubernetes scaling overlay should be used. |
-| `ROUTER_VENDOR` | `zte` | Backward-compatible alias for `ACTIVE_ROUTER_VENDOR`. Keep it matching the active router while older deployments may still read it. |
+| `ROUTER_VENDOR` | `zte` | Default router selected by the dashboard and used by the historical poller. Valid values are `huawei` and `zte`. |
 
 If the selected router is unavailable, the live cards clear and the dashboard shows a toast error. Historical charts remain visible.
 
-The UI dropdown remains available so a user can manually query another configured router. The active router mode is still important operationally:
+The UI dropdown remains available so a user can manually query another configured router. Scaling is an operator decision, not a dropdown behavior:
 
-- `ACTIVE_ROUTER_VENDOR=huawei`: Huawei is the default and the Huawei overlay can run multiple dashboard replicas.
-- `ACTIVE_ROUTER_VENDOR=zte`: ZTE is the default and the ZTE overlay keeps the dashboard at one replica because ZTE sessions invalidate each other.
+- Use the single-replica overlay when the active/important router is ZTE, because ZTE sessions invalidate each other.
+- Use the scalable overlay only when you are operating against Huawei or another router that tolerates multiple dashboard sessions.
 
 ## Huawei Router
 
@@ -58,6 +57,7 @@ HUAWEI_ROUTER_PASSWORD
 | `ZTE_OPERATOR_NAME` | `Vodafone Egypt` | Operator label used for normalized ZTE metrics. |
 | `ZTE_AUTH_MODE` | `zte_mf296c` | ZTE password transform/login mode. Current router uses MF296C SHA256 challenge behavior. |
 | `ZTE_AUTH_AUTO_MAX_ATTEMPTS` | `3` | Maximum auth transforms to try when `ZTE_AUTH_MODE=auto`. Ignored for a fixed auth mode. |
+| `ZTE_SESSION_TTL_SECONDS` | `300` | How long the app reuses a ZTE login session before proactively logging in again. Minimum enforced by the app is 60 seconds. |
 
 ZTE credentials are configured in the Secret:
 
@@ -145,12 +145,12 @@ kubectl -n backend rollout status deployment/router-dashboard --timeout=180s
 For an explicit router mode profile:
 
 ```bash
-# ZTE mode: one dashboard replica, no HPA.
-kubectl apply -k k8s_overlays/zte
+# Single-replica profile: use for ZTE.
+kubectl apply -k k8s_overlays/single-replica
 kubectl -n backend delete hpa router-dashboard --ignore-not-found
 
-# Huawei mode: minimum two dashboard replicas, HPA enabled.
-kubectl apply -k k8s_overlays/huawei
+# Scalable profile: use for Huawei.
+kubectl apply -k k8s_overlays/scalable
 ```
 
 Most ConfigMap values are loaded only when the container starts, so restart the Deployment after plain ConfigMap changes if the applied overlay did not create a new rollout.

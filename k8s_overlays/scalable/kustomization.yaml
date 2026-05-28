@@ -6,5 +6,4 @@ resources:
   - router-dashboard-hpa.yml
 
 patches:
-  - path: router-dashboard-config-patch.yml
   - path: router-dashboard-deployment-patch.yml
