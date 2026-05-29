@@ -38,9 +38,9 @@ ZTE_ROUTER_USERNAME
 ZTE_ROUTER_PASSWORD
 ```
 
-## Future Router Adapters
+## Router Adapters
 
-The next phase is to keep one dashboard app and move router-specific code into adapters:
+The dashboard keeps one application with router-specific code in adapters:
 
 ```text
 router_clients/
@@ -48,6 +48,21 @@ router_clients/
   huawei.py
   zte.py
 ```
+
+Huawei live fetch support uses `/api/device/signal` on `http://192.168.9.1` after the app logs in with `HUAWEI_ROUTER_PASSWORD`. The Huawei login flow is SCRAM-like, but the client signature uses the vendor-specific HMAC argument order used by this router firmware:
+
+1. Fetch the router page and collect CSRF token meta values.
+2. POST `/api/user/challenge_login` with username, first nonce, and `mode=1`.
+3. Read `salt`, `iterations`, `servernonce`, and the response `__RequestVerificationToken` header.
+4. Derive `salted_password = PBKDF2-HMAC-SHA256(password, salt, iterations, dklen=32)`.
+5. Compute `client_key = HMAC-SHA256(key="Client Key", message=hex_to_bytes(salted_password_hex))`.
+6. Compute `stored_key = SHA256(hex_to_bytes(client_key_hex))`.
+7. Build `auth_msg = firstnonce + "," + servernonce + "," + servernonce`.
+8. Compute the Huawei-specific signature as `client_signature = HMAC-SHA256(key=auth_msg, message=hex_to_bytes(stored_key_hex))`.
+9. XOR `client_key_hex` and `client_signature_hex` to produce `clientproof`.
+10. POST `/api/user/authentication_login` with `clientproof` and `finalnonce=servernonce`.
+
+The HMAC order in step 8 is intentional for this Huawei CPE and is not standard SCRAM.
 
 ZTE live fetch support uses `GET /goform/goform_get_cmd_process` on `http://192.168.9.1` after the app logs in with `ZTE_ROUTER_PASSWORD`. Initial normalization maps `network_type`, `lte_rsrp`/`Z5g_rsrp`, `sinr`/`Z5g_SINR`/`Z5g_snr`, `rssi`, `Z_PCI`/`Z5g_PCI`, `cell_id`/`Z5g_CELL_ID`, `ZCELLINFO_band`/`Z5g_CELLINFO_band`, and LTE CA fields into the existing dashboard model.
 
