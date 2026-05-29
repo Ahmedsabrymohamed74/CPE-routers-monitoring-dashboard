@@ -1,0 +1,23 @@
+name: PR title
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+
+jobs:
+  validate-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require CH-number title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ ! "$PR_TITLE" =~ ^CH-[0-9]{2,}:\ .+ ]]; then
+            echo "Invalid PR title: $PR_TITLE"
+            echo "Expected format: CH-01: Add docs for auth flow"
+            exit 1
+          fi
