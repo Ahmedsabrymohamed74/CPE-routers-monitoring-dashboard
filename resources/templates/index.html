@@ -235,6 +235,13 @@
       margin-top: 16px;
     }
 
+    .speedtest-note {
+      color: #9ca3af;
+      flex-basis: 100%;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
     .speedtest-run {
       background: #2563eb;
     }
@@ -590,7 +597,7 @@
       </details>
 
       <details class="metric-subsection" open>
-        <summary class="metric-subtitle">LAN Info</summary>
+        <summary class="metric-subtitle">LAN Metrics</summary>
         <div class="grid">
           <div class="card">
             <div class="label">Latency</div>
@@ -620,6 +627,7 @@
         <div class="speedtest-actions">
           <button class="speedtest-run" id="runSpeedTest">Run speed test</button>
           <span class="history-range-status" id="speedtestStatus">No speed test loaded</span>
+          <div class="speedtest-note">Note: speed test results are measured from the VM/pod running the dashboard, not from this browser device.</div>
         </div>
       </details>
 
@@ -935,7 +943,7 @@
         const res = await fetch("/api/routers");
         const payload = await responseJsonOrError(res);
         const select = document.getElementById("routerVendor");
-        selectedRouterVendor = payload.active_vendor || payload.default_vendor || selectedRouterVendor;
+        selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
         select.innerHTML = (payload.routers || []).map(router => `
           <option
             value="${router.vendor}"

@@ -14,8 +14,7 @@ data:
   DASHBOARD_NETWORK_TYPE: "LTE / 4G"
   DASHBOARD_OPERATOR_NAME: "Vodafone Egypt"
 
-  # Cluster-wide router mode
-  ACTIVE_ROUTER_VENDOR: "zte"
+  # Default router
   ROUTER_VENDOR: "zte"
 
   # Huawei router
@@ -29,6 +28,7 @@ data:
   ZTE_OPERATOR_NAME: "Vodafone Egypt"
   ZTE_AUTH_MODE: "zte_mf296c"
   ZTE_AUTH_AUTO_MAX_ATTEMPTS: "3"
+  ZTE_SESSION_TTL_SECONDS: "300"
 
   # Historical cellular metrics
   HISTORICAL_ENABLED: "true"

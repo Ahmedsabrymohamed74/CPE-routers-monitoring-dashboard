@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: router-dashboard-config
-  namespace: backend
-data:
-  ACTIVE_ROUTER_VENDOR: "huawei"
-  ROUTER_VENDOR: "huawei"

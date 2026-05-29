@@ -62,8 +62,7 @@ def env_int(name, default, aliases=()):
         return default
 
 
-ACTIVE_ROUTER_VENDOR = env_value("ACTIVE_ROUTER_VENDOR", "huawei", aliases=("ROUTER_VENDOR",)).strip().lower()
-ROUTER_VENDOR = ACTIVE_ROUTER_VENDOR
+ROUTER_VENDOR = env_value("ROUTER_VENDOR", "huawei").strip().lower()
 HUAWEI_ROUTER_URL = env_value("HUAWEI_ROUTER_URL", "http://192.168.9.1", aliases=("ROUTER_URL",))
 HUAWEI_ROUTER_NAME = env_value("HUAWEI_ROUTER_NAME", "Huawei", aliases=("ROUTER_NAME",))
 HUAWEI_ROUTER_USERNAME = env_value("HUAWEI_ROUTER_USERNAME", "admin", aliases=("ROUTER_USERNAME",))
@@ -75,6 +74,7 @@ ZTE_ROUTER_PASSWORD = env_value("ZTE_ROUTER_PASSWORD", aliases=("ZTE_PASSWORD",)
 ZTE_SESSION_COOKIE = env_value("ZTE_SESSION_COOKIE", aliases=("ZTE_ZSIDN",))
 ZTE_AUTH_MODE = env_value("ZTE_AUTH_MODE", "zte_mf296c")
 ZTE_AUTH_AUTO_MAX_ATTEMPTS = env_int("ZTE_AUTH_AUTO_MAX_ATTEMPTS", 3)
+ZTE_SESSION_TTL_SECONDS = max(60, env_int("ZTE_SESSION_TTL_SECONDS", 300))
 
 NETWORK_TYPE = env_value("DASHBOARD_NETWORK_TYPE", "LTE / 4G", aliases=("NETWORK_TYPE",))
 OPERATOR_NAME = env_value("DASHBOARD_OPERATOR_NAME", "Vodafone Egypt", aliases=("OPERATOR_NAME",))
@@ -115,13 +115,13 @@ APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = env_int("APP_PORT", 5000)
 
 
-if ACTIVE_ROUTER_VENDOR not in {"huawei", "zte"}:
-    raise RuntimeError("ACTIVE_ROUTER_VENDOR must be either 'huawei' or 'zte'")
+if ROUTER_VENDOR not in {"huawei", "zte"}:
+    raise RuntimeError("ROUTER_VENDOR must be either 'huawei' or 'zte'")
 
-if ACTIVE_ROUTER_VENDOR == "huawei" and not HUAWEI_ROUTER_PASSWORD:
+if ROUTER_VENDOR == "huawei" and not HUAWEI_ROUTER_PASSWORD:
     raise RuntimeError("HUAWEI_ROUTER_PASSWORD or ROUTER_PASSWORD environment variable is required")
 
-if ACTIVE_ROUTER_VENDOR == "zte" and not (ZTE_ROUTER_PASSWORD or ZTE_SESSION_COOKIE):
+if ROUTER_VENDOR == "zte" and not (ZTE_ROUTER_PASSWORD or ZTE_SESSION_COOKIE):
     raise RuntimeError("ZTE_ROUTER_PASSWORD or ZTE_SESSION_COOKIE environment variable is required")
 
 
@@ -143,6 +143,7 @@ routers = {
         session_cookie=ZTE_SESSION_COOKIE,
         auth_mode=ZTE_AUTH_MODE,
         auto_max_attempts=ZTE_AUTH_AUTO_MAX_ATTEMPTS,
+        session_ttl_seconds=ZTE_SESSION_TTL_SECONDS,
         router_name=ZTE_ROUTER_NAME,
     ),
 }
@@ -164,7 +165,7 @@ def clean_value(value):
 
 
 def configured_router_vendor():
-    return ACTIVE_ROUTER_VENDOR
+    return ROUTER_VENDOR
 
 
 def router_config(vendor):
@@ -361,9 +362,8 @@ def index():
 def health():
     return jsonify({
         "status": "ok",
-        "active_router_vendor": ACTIVE_ROUTER_VENDOR,
-        "router_vendor": ACTIVE_ROUTER_VENDOR,
-        "router_url": routers[ACTIVE_ROUTER_VENDOR].router_url,
+        "router_vendor": ROUTER_VENDOR,
+        "router_url": routers[ROUTER_VENDOR].router_url,
         "historical_enabled": ENABLE_HISTORICAL,
         "historical_poll_interval_seconds": POLL_INTERVAL_SECONDS,
         "historical_retention_days": HISTORICAL_RETENTION_DAYS,
@@ -379,7 +379,6 @@ def health():
 def router_list():
     return jsonify({
         "default_vendor": configured_router_vendor(),
-        "active_vendor": configured_router_vendor(),
         "switch_enabled": True,
         "routers": [
             {
@@ -404,9 +403,14 @@ def router_list():
 
 @app.route("/api/cellular")
 def cellular():
+    vendor = request.args.get("vendor") or configured_router_vendor()
     try:
-        return jsonify(build_cellular_payload(request.args.get("vendor")))
+        return jsonify(build_cellular_payload(vendor))
     except Exception as exc:
+        print(
+            f"[!] Cellular fetch error vendor={vendor!r} type={type(exc).__name__}: {exc}",
+            flush=True,
+        )
         return jsonify({
             "error": True,
             "message": str(exc),
@@ -497,9 +501,9 @@ def speedtest_run():
 # --------------------
 if __name__ == "__main__":
     print("[*] Starting router dashboard", flush=True)
-    print(f"[*] Active router vendor: {ACTIVE_ROUTER_VENDOR}", flush=True)
-    if ACTIVE_ROUTER_VENDOR == "zte":
-        print("[!] ZTE mode requires a single dashboard replica", flush=True)
+    print(f"[*] Default router vendor: {ROUTER_VENDOR}", flush=True)
+    if ROUTER_VENDOR == "zte":
+        print("[!] ZTE should be run with a single dashboard replica", flush=True)
     print(f"[*] Huawei Router URL: {HUAWEI_ROUTER_URL}", flush=True)
     print(f"[*] ZTE Router URL: {ZTE_ROUTER_URL}", flush=True)
     print(f"[*] Network Type: {NETWORK_TYPE}", flush=True)

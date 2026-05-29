@@ -17,22 +17,19 @@ ConfigMap values are non-secret runtime settings. Passwords, usernames, session 
 | --- | --- | --- |
 | `NETWORK_TYPE` | `LTE / 4G` | Backward-compatible default display network type. |
 | `OPERATOR_NAME` | `Vodafone Egypt` | Backward-compatible default operator name. |
-| `DASHBOARD_NETWORK_TYPE` | `LTE / 4G` | Default network label shown when a router does not return one. |
+| `DASHBOARD_NETWORK_TYPE` | `LTE / 4G` | Default network label shown w git add docs/configmap.mdhen a router does not return one. |
 | `DASHBOARD_OPERATOR_NAME` | `Vodafone Egypt` | Default operator label used by Huawei and as a fallback for other routers. |
 
 ## Router Selection
 
 | Key | Current value | Meaning |
 | --- | --- | --- |
-| `ACTIVE_ROUTER_VENDOR` | `zte` | Cluster-wide default router mode. Valid values are `huawei` and `zte`. This controls the default UI selection, the historical poller target, and which Kubernetes scaling overlay should be used. |
-| `ROUTER_VENDOR` | `zte` | Backward-compatible alias for `ACTIVE_ROUTER_VENDOR`. Keep it matching the active router while older deployments may still read it. |
+| `ROUTER_VENDOR` | `zte` | Default router selected by the dashboard and used by the historical poller. Valid values are `huawei` and `zte`. |
 
 If the selected router is unavailable, the live cards clear and the dashboard shows a toast error. Historical charts remain visible.
 
-The UI dropdown remains available so a user can manually query another configured router. The active router mode is still important operationally:
+The UI dropdown remains available so a user can manually query another configured router. The base Kubernetes manifest runs one dashboard replica, which is the safe default for ZTE because this ZTE CPE invalidates competing sessions. But, by introducing bounded ZTE auth retry plus `ZTE_SESSION_TTL_SECONDS` renewal so stale sessions can be refreshed and usable metrics can recover. But scale resposibly (or refine TTL) so re authing won't be excessive. 
 
-- `ACTIVE_ROUTER_VENDOR=huawei`: Huawei is the default and the Huawei overlay can run multiple dashboard replicas.
-- `ACTIVE_ROUTER_VENDOR=zte`: ZTE is the default and the ZTE overlay keeps the dashboard at one replica because ZTE sessions invalidate each other.
 
 ## Huawei Router
 
@@ -58,6 +55,7 @@ HUAWEI_ROUTER_PASSWORD
 | `ZTE_OPERATOR_NAME` | `Vodafone Egypt` | Operator label used for normalized ZTE metrics. |
 | `ZTE_AUTH_MODE` | `zte_mf296c` | ZTE password transform/login mode. Current router uses MF296C SHA256 challenge behavior. |
 | `ZTE_AUTH_AUTO_MAX_ATTEMPTS` | `3` | Maximum auth transforms to try when `ZTE_AUTH_MODE=auto`. Ignored for a fixed auth mode. |
+| `ZTE_SESSION_TTL_SECONDS` | `300` | How long the app reuses a ZTE login session before proactively logging in again. Minimum enforced by the app is 60 seconds. |
 
 ZTE credentials are configured in the Secret:
 
@@ -142,15 +140,18 @@ kubectl -n backend rollout restart deployment/router-dashboard
 kubectl -n backend rollout status deployment/router-dashboard --timeout=180s
 ```
 
-For an explicit router mode profile:
+For optional Huawei scaling:
 
 ```bash
-# ZTE mode: one dashboard replica, no HPA.
-kubectl apply -k k8s_overlays/zte
-kubectl -n backend delete hpa router-dashboard --ignore-not-found
-
-# Huawei mode: minimum two dashboard replicas, HPA enabled.
-kubectl apply -k k8s_overlays/huawei
+kubectl -n backend scale deployment/router-dashboard --replicas=2
+kubectl apply -f k8s_mani/optional/router-dashboard-hpa.yml
 ```
 
-Most ConfigMap values are loaded only when the container starts, so restart the Deployment after plain ConfigMap changes if the applied overlay did not create a new rollout.
+To return to the safe ZTE profile:
+
+```bash
+kubectl -n backend delete hpa router-dashboard --ignore-not-found
+kubectl -n backend scale deployment/router-dashboard --replicas=1
+```
+
+Most ConfigMap values are loaded only when the container starts, so restart the Deployment after plain ConfigMap changes.

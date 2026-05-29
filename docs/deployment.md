@@ -26,16 +26,23 @@ kubectl apply -k k8s_mani
 kubectl -n backend rollout status deployment/router-dashboard --timeout=180s
 ```
 
-Router mode overlays are available when you want the Kubernetes scaling policy to match the active router:
+The base Deployment runs one replica. Keep it that way when ZTE is the active router, because this ZTE CPE invalidates competing sessions.
+
+When Huawei is the active router and you want the dashboard to scale, enable the optional HPA object:
 
 ```bash
-# ZTE mode keeps one replica because ZTE CPE sessions invalidate each other.
-kubectl apply -k k8s_overlays/zte
-kubectl -n backend delete hpa router-dashboard --ignore-not-found
-
-# Huawei mode starts with two replicas and includes an HPA.
-kubectl apply -k k8s_overlays/huawei
+kubectl -n backend scale deployment/router-dashboard --replicas=2
+kubectl apply -f k8s_mani/optional/router-dashboard-hpa.yml
 ```
+
+When ZTE is active again, disable autoscaling and return to one replica:
+
+```bash
+kubectl -n backend delete hpa router-dashboard --ignore-not-found
+kubectl -n backend scale deployment/router-dashboard --replicas=1
+```
+
+This is controlled by applying or deleting the Kubernetes HPA object. It is not a ConfigMap setting because the Kubernetes autoscaler does not read application runtime variables.
 
 Prerequisites:
 
