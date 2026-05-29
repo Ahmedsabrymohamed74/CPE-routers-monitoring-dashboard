@@ -49,6 +49,33 @@
       font-size: 14px;
     }
 
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 220px;
+    }
+
+    .field label {
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    .field input,
+    .field textarea {
+      background: #111827;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      color: #f9fafb;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+
+    .field textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
     button {
       border: 0;
       border-radius: 10px;
@@ -136,6 +163,18 @@
     .card:hover {
       transform: translateY(-3px);
       background: #263244;
+    }
+
+    .card-action {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      line-height: 28px;
+      padding: 0;
+      text-align: center;
     }
 
     .label {
@@ -372,6 +411,10 @@
       .history-chart-grid {
         grid-template-columns: 1fr;
       }
+
+      .cell-group-item {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     .history-table-wrap {
@@ -459,6 +502,80 @@
       background: transparent;
       border-radius: 8px;
       padding: 5px 9px;
+    }
+
+    .modal-backdrop {
+      align-items: center;
+      background: rgba(3, 7, 18, 0.72);
+      display: none;
+      inset: 0;
+      justify-content: center;
+      padding: 20px;
+      position: fixed;
+      z-index: 90;
+    }
+
+    .modal-backdrop.visible {
+      display: flex;
+    }
+
+    .modal {
+      background: #1f2937;
+      border: 1px solid #4b5563;
+      border-radius: 12px;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.5);
+      max-width: 520px;
+      padding: 18px;
+      width: min(520px, 100%);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 14px;
+    }
+
+    .modal .field {
+      margin-top: 12px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    .cell-group-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .cell-group-item {
+      align-items: center;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      color: #f9fafb;
+      cursor: pointer;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(70px, 0.6fr));
+      padding: 10px 12px;
+      text-align: left;
+      width: 100%;
+    }
+
+    .cell-group-name {
+      font-weight: bold;
+      min-width: 0;
+      word-break: break-word;
+    }
+
+    .cell-group-stat {
+      color: #d1d5db;
+      font-size: 13px;
     }
 
     @media (max-width: 1100px) {
@@ -555,8 +672,9 @@
 
           <div class="card">
             <div class="label">Cell ID</div>
-            <div class="value" id="cell_id">--</div>
-            <div class="tooltip">The serving LTE cell identifier. Useful for tracking whether the router changed to another tower or sector.</div>
+            <button class="card-action" id="editCellTag" title="Tag this Cell ID">+</button>
+            <div class="value wide-value" id="cell_id">--</div>
+            <div class="tooltip">The serving LTE cell identifier. When tagged, this shows the custom tower label and ISO 3166-2 region with the Cell ID in brackets.</div>
           </div>
         </div>
       </div>
@@ -710,6 +828,10 @@
           <button class="history-range-btn" data-minutes="1440">24h</button>
           <button class="history-range-btn" data-minutes="4320">3d</button>
           <button class="history-range-btn" data-minutes="10080">7d</button>
+          <span class="toolbar-label">Cell:</span>
+          <select id="historyCellFilter">
+            <option value="">All cells</option>
+          </select>
           <span class="history-range-status" id="historyRangeStatus">Showing last 1h</span>
           <div class="custom-range">
             <span class="toolbar-label">Custom:</span>
@@ -740,6 +862,15 @@
           </div>
         </div>
       </div>
+
+      <details class="history-table-details" open>
+        <summary>Cell ID groups</summary>
+        <div class="cell-group-list" id="cellGroupList">
+          <div class="cell-group-item">
+            <div class="cell-group-name">Waiting for history...</div>
+          </div>
+        </div>
+      </details>
 
       <details class="history-table-details">
         <summary>Historical cellular samples</summary>
@@ -835,6 +966,32 @@
     <pre id="raw"></pre>
   </details>
 
+  <div class="modal-backdrop" id="cellTagModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cellTagTitle">
+      <div class="modal-title" id="cellTagTitle">Tag Cell ID</div>
+      <div class="field">
+        <label for="cellTagCellId">Cell ID</label>
+        <input id="cellTagCellId" readonly>
+      </div>
+      <div class="field">
+        <label for="cellTagRegion">ISO 3166-2 region</label>
+        <select id="cellTagRegion"></select>
+      </div>
+      <div class="field">
+        <label for="cellTagCustomLabel">Custom tower label</label>
+        <input id="cellTagCustomLabel" placeholder="Amwaj North Coast">
+      </div>
+      <div class="field">
+        <label for="cellTagNotes">Notes</label>
+        <textarea id="cellTagNotes" placeholder="Optional details"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="cellTagCancel">Cancel</button>
+        <button class="manual-refresh" id="cellTagSave">Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="error-toast" id="errorToast" role="alert" aria-live="assertive">
     <button class="error-toast-close" id="errorToastClose" title="Dismiss">x</button>
     <div class="error-toast-title" id="errorToastTitle">Dashboard error</div>
@@ -853,6 +1010,11 @@
     let isFetching = false;
     let currentHistoryItems = [];
     let currentSpeedTestItems = [];
+    let currentCellId = null;
+    let currentCellTag = null;
+    let currentCellGroups = [];
+    let selectedHistoryCellId = "";
+    let isoRegions = [];
     let lastErrorMessage = null;
 
     const historyMetrics = [
@@ -914,6 +1076,29 @@
         value === null || value === undefined || value === "" ? "--" : value;
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[character]));
+    }
+
+    function cellDisplayLabel(item) {
+      if (!item) {
+        return "--";
+      }
+
+      const cellId = item.cell_id;
+      const tag = item.cell_tag || (item.cell_label && item.cell_label !== cellId ? item.cell_label : null);
+      if (tag && cellId) {
+        return `${tag} (${cellId})`;
+      }
+      return cellId || "--";
+    }
+
     function clearLiveMetrics() {
       [
         "network_type",
@@ -935,6 +1120,8 @@
         "cqi0",
       ].forEach(id => setText(id, null));
 
+      currentCellId = null;
+      currentCellTag = null;
       document.getElementById("raw").textContent = "";
     }
 
@@ -955,6 +1142,80 @@
         select.disabled = false;
       } catch (err) {
         showErrorPopup("Router list error", err.message || err);
+      }
+    }
+
+    async function loadIsoRegions() {
+      const res = await fetch("/api/iso-regions");
+      const payload = await responseJsonOrError(res);
+      isoRegions = payload.items || [];
+      document.getElementById("cellTagRegion").innerHTML = isoRegions.map(region => `
+        <option value="${escapeHtml(region.code)}">${escapeHtml(region.code)} - ${escapeHtml(region.name)}</option>
+      `).join("");
+    }
+
+    async function loadCellTag(cellId) {
+      if (!cellId) {
+        return null;
+      }
+
+      const params = new URLSearchParams({ cell_id: cellId });
+      const res = await fetch(`/api/cell-tags?${params.toString()}`);
+      const payload = await responseJsonOrError(res);
+      return (payload.items || [])[0] || null;
+    }
+
+    async function openCellTagModal() {
+      if (!currentCellId) {
+        showErrorPopup("Cell tag error", "No live Cell ID is available yet");
+        return;
+      }
+
+      try {
+        if (isoRegions.length === 0) {
+          await loadIsoRegions();
+        }
+
+        const tag = await loadCellTag(currentCellId);
+        currentCellTag = tag;
+        document.getElementById("cellTagCellId").value = currentCellId;
+        document.getElementById("cellTagRegion").value = tag?.iso_region_code || "EG-C";
+        document.getElementById("cellTagCustomLabel").value = tag?.custom_label || "";
+        document.getElementById("cellTagNotes").value = tag?.notes || "";
+        document.getElementById("cellTagModal").classList.add("visible");
+      } catch (err) {
+        showErrorPopup("Cell tag error", err.message || err);
+      }
+    }
+
+    function closeCellTagModal() {
+      document.getElementById("cellTagModal").classList.remove("visible");
+    }
+
+    async function saveCellTag() {
+      const payload = {
+        cell_id: document.getElementById("cellTagCellId").value,
+        iso_region_code: document.getElementById("cellTagRegion").value,
+        custom_label: document.getElementById("cellTagCustomLabel").value,
+        notes: document.getElementById("cellTagNotes").value,
+      };
+
+      try {
+        const res = await fetch("/api/cell-tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const saved = await responseJsonOrError(res);
+        currentCellTag = saved.item;
+        setText("cell_id", cellDisplayLabel({
+          cell_id: currentCellId,
+          cell_tag: currentCellTag?.cell_tag,
+        }));
+        closeCellTagModal();
+        refreshHistory();
+      } catch (err) {
+        showErrorPopup("Cell tag save failed", err.message || err);
       }
     }
 
@@ -1163,12 +1424,16 @@
         const start = new Date(customHistoryRange.start).toLocaleString();
         const end = new Date(customHistoryRange.end).toLocaleString();
         document.getElementById("historyRangeStatus").textContent =
-          `${start} to ${end}`;
+          selectedHistoryCellId
+            ? `${start} to ${end} · filtered by Cell ${selectedHistoryCellId}`
+            : `${start} to ${end}`;
         return;
       }
 
       document.getElementById("historyRangeStatus").textContent =
-        `Showing last ${formatRangeLabel(historyRangeMinutes)}`;
+        selectedHistoryCellId
+          ? `Showing last ${formatRangeLabel(historyRangeMinutes)} · filtered by Cell ${selectedHistoryCellId}`
+          : `Showing last ${formatRangeLabel(historyRangeMinutes)}`;
     }
 
     function updateLanRangeStatus() {
@@ -1505,6 +1770,48 @@
       drawLanCharts(currentSpeedTestItems);
     }
 
+    function renderCellFilter(groups) {
+      const select = document.getElementById("historyCellFilter");
+      const previousValue = selectedHistoryCellId;
+      select.innerHTML = '<option value="">All cells</option>' + groups.map(group => `
+        <option value="${escapeHtml(group.cell_id)}">
+          ${escapeHtml(cellDisplayLabel(group))}
+        </option>
+      `).join("");
+      selectedHistoryCellId = groups.some(group => group.cell_id === previousValue) ? previousValue : "";
+      select.value = selectedHistoryCellId;
+    }
+
+    function renderCellGroups(groups) {
+      const container = document.getElementById("cellGroupList");
+      if (!groups || groups.length === 0) {
+        container.innerHTML = `
+          <div class="cell-group-item">
+            <div class="cell-group-name">No Cell IDs in selected range</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = groups.map(group => `
+        <button class="cell-group-item" data-cell-id="${escapeHtml(group.cell_id)}" type="button">
+          <div class="cell-group-name">${escapeHtml(cellDisplayLabel(group))}</div>
+          <div class="cell-group-stat">${Number(group.sample_count || 0)} samples</div>
+          <div class="cell-group-stat">RSRP ${group.avg_rsrp === null ? "--" : Number(group.avg_rsrp).toFixed(1)}</div>
+          <div class="cell-group-stat">RSRQ ${group.avg_rsrq === null ? "--" : Number(group.avg_rsrq).toFixed(1)}</div>
+          <div class="cell-group-stat">SINR ${group.avg_sinr === null ? "--" : Number(group.avg_sinr).toFixed(1)}</div>
+        </button>
+      `).join("");
+
+      container.querySelectorAll(".cell-group-item").forEach(button => {
+        button.addEventListener("click", () => {
+          selectedHistoryCellId = button.dataset.cellId || "";
+          document.getElementById("historyCellFilter").value = selectedHistoryCellId;
+          refreshHistory();
+        });
+      });
+    }
+
     function renderHistoryTable(items) {
       const rows = document.getElementById("historyRows");
       const recent = items.slice(-12).reverse();
@@ -1522,8 +1829,8 @@
           <td>${item.sinr ?? "--"}</td>
           <td>${item.rssi ?? "--"}</td>
           <td>${item.pci ?? "--"}</td>
-          <td>${item.cell_id ?? "--"}</td>
-          <td>${item.band ?? "--"}</td>
+          <td>${escapeHtml(cellDisplayLabel(item))}</td>
+          <td>${escapeHtml(item.band ?? "--")}</td>
         </tr>
       `).join("");
     }
@@ -1537,11 +1844,18 @@
         } else {
           params.set("minutes", String(historyRangeMinutes));
         }
+        if (selectedHistoryCellId) {
+          params.set("cell_id", selectedHistoryCellId);
+        }
 
         const res = await fetch(`/api/history?${params.toString()}`);
         const payload = await responseJsonOrError(res);
         const items = payload.items || [];
+        const groups = payload.cell_groups || [];
         currentHistoryItems = items;
+        currentCellGroups = groups;
+        renderCellFilter(groups);
+        renderCellGroups(groups);
         drawHistoryCharts(items);
         renderHistoryTable(items);
         updateHistoryRangeStatus();
@@ -1582,7 +1896,13 @@
         setText("network_type", data.network_type);
         setText("operator", data.operator);
         setText("pci", data.pci);
-        setText("cell_id", data.cell_id);
+        currentCellId = data.cell_id || null;
+        currentCellTag = {
+          cell_tag: data.cell_tag,
+          iso_region_code: data.iso_region_code,
+          custom_label: data.custom_label,
+        };
+        setText("cell_id", cellDisplayLabel(data));
 
         setText("rsrp", data.rsrp);
         setText("rsrq", data.rsrq);
@@ -1641,6 +1961,21 @@
 
     document.getElementById("runSpeedTest").addEventListener("click", () => {
       runSpeedTest();
+    });
+
+    document.getElementById("editCellTag").addEventListener("click", openCellTagModal);
+    document.getElementById("cellTagCancel").addEventListener("click", closeCellTagModal);
+    document.getElementById("cellTagSave").addEventListener("click", saveCellTag);
+    document.getElementById("cellTagModal").addEventListener("click", event => {
+      if (event.target.id === "cellTagModal") {
+        closeCellTagModal();
+      }
+    });
+
+    document.getElementById("historyCellFilter").addEventListener("change", event => {
+      selectedHistoryCellId = event.target.value;
+      updateHistoryRangeStatus();
+      refreshHistory();
     });
 
     document.querySelectorAll(".history-range-btn").forEach(button => {

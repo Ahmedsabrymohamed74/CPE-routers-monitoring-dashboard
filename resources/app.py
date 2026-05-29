@@ -9,23 +9,29 @@ from router_clients import create_router_client
 
 try:
     from db import (
+        fetch_cell_tags,
         fetch_history,
+        fetch_history_cell_groups,
         fetch_speedtest_results,
         init_db,
         insert_metric,
         insert_speedtest_result,
         prune_metrics,
         prune_speedtest_results,
+        upsert_cell_tag,
         db_config_available,
     )
 except ImportError:
+    fetch_cell_tags = None
     init_db = None
     insert_metric = None
     prune_metrics = None
     fetch_history = None
+    fetch_history_cell_groups = None
     insert_speedtest_result = None
     fetch_speedtest_results = None
     prune_speedtest_results = None
+    upsert_cell_tag = None
 
     def db_config_available():
         return False
@@ -154,6 +160,37 @@ db_init_lock = Lock()
 db_initialized = False
 latest_speedtest_result = None
 
+ISO_3166_2_REGIONS = [
+    {"code": "EG-ALX", "name": "Alexandria"},
+    {"code": "EG-ASN", "name": "Aswan"},
+    {"code": "EG-AST", "name": "Asyut"},
+    {"code": "EG-BA", "name": "Red Sea"},
+    {"code": "EG-BH", "name": "Beheira"},
+    {"code": "EG-BNS", "name": "Beni Suef"},
+    {"code": "EG-C", "name": "Cairo"},
+    {"code": "EG-DK", "name": "Dakahlia"},
+    {"code": "EG-DT", "name": "Damietta"},
+    {"code": "EG-FYM", "name": "Faiyum"},
+    {"code": "EG-GH", "name": "Gharbia"},
+    {"code": "EG-GZ", "name": "Giza"},
+    {"code": "EG-IS", "name": "Ismailia"},
+    {"code": "EG-JS", "name": "South Sinai"},
+    {"code": "EG-KB", "name": "Qalyubia"},
+    {"code": "EG-KFS", "name": "Kafr el-Sheikh"},
+    {"code": "EG-KN", "name": "Qena"},
+    {"code": "EG-LX", "name": "Luxor"},
+    {"code": "EG-MN", "name": "Minya"},
+    {"code": "EG-MNF", "name": "Monufia"},
+    {"code": "EG-MT", "name": "Matrouh"},
+    {"code": "EG-PTS", "name": "Port Said"},
+    {"code": "EG-SHG", "name": "Sohag"},
+    {"code": "EG-SHR", "name": "Sharqia"},
+    {"code": "EG-SIN", "name": "North Sinai"},
+    {"code": "EG-SUZ", "name": "Suez"},
+    {"code": "EG-WAD", "name": "New Valley"},
+]
+ISO_3166_2_REGION_CODES = {region["code"] for region in ISO_3166_2_REGIONS}
+
 
 # --------------------
 # Helpers
@@ -202,7 +239,45 @@ def build_cellular_payload(vendor=None):
     config = router_config(normalized_vendor)
 
     with router_lock:
-        return router_client.build_payload(**config)
+        payload = router_client.build_payload(**config)
+
+    apply_cell_tag(payload)
+    return payload
+
+
+def apply_cell_tag(payload):
+    cell_id = payload.get("cell_id")
+    payload["cell_tag"] = None
+    payload["iso_region_code"] = None
+    payload["custom_label"] = None
+    payload["cell_label"] = str(cell_id) if cell_id else None
+
+    if not fetch_cell_tags or not db_config_available():
+        return payload
+
+    if not cell_id:
+        return payload
+
+    try:
+        ensure_db_initialized()
+        tags = fetch_cell_tags([cell_id])
+    except Exception as exc:
+        print(f"[!] Cell tag lookup error for cell_id={cell_id!r}: {exc}", flush=True)
+        return payload
+
+    if tags:
+        tag = tags[0]
+        payload["cell_tag"] = tag.get("cell_tag")
+        payload["iso_region_code"] = tag.get("iso_region_code")
+        payload["custom_label"] = tag.get("custom_label")
+        payload["cell_label"] = tag.get("cell_tag")
+    else:
+        payload["cell_tag"] = None
+        payload["iso_region_code"] = None
+        payload["custom_label"] = None
+        payload["cell_label"] = str(cell_id)
+
+    return payload
 
 
 def speedtest_config():
@@ -417,6 +492,63 @@ def cellular():
         }), 500
 
 
+@app.route("/api/iso-regions")
+def iso_regions():
+    return jsonify({"items": ISO_3166_2_REGIONS})
+
+
+@app.route("/api/cell-tags", methods=["GET"])
+def cell_tags():
+    if not fetch_cell_tags:
+        return jsonify({"error": True, "message": "cell tag storage unavailable"}), 503
+
+    try:
+        ensure_db_initialized()
+        cell_id = request.args.get("cell_id")
+        cell_ids = [cell_id] if cell_id else None
+        return jsonify({"items": fetch_cell_tags(cell_ids)})
+    except Exception as exc:
+        print(f"[!] Cell tag fetch error: {exc}", flush=True)
+        return jsonify({
+            "error": True,
+            "message": str(exc),
+        }), 500
+
+
+@app.route("/api/cell-tags", methods=["POST"])
+def save_cell_tag():
+    if not upsert_cell_tag:
+        return jsonify({"error": True, "message": "cell tag storage unavailable"}), 503
+
+    payload = request.get_json(silent=True) or {}
+    cell_id = str(payload.get("cell_id") or "").strip()
+    iso_region_code = str(payload.get("iso_region_code") or "").strip()
+    custom_label = str(payload.get("custom_label") or "").strip()
+    notes = str(payload.get("notes") or "").strip()
+
+    if not cell_id:
+        return jsonify({"error": True, "message": "cell_id is required"}), 400
+    if iso_region_code not in ISO_3166_2_REGION_CODES:
+        return jsonify({"error": True, "message": "Choose a valid ISO 3166-2 region code"}), 400
+
+    try:
+        ensure_db_initialized()
+        upsert_cell_tag(
+            cell_id=cell_id,
+            iso_region_code=iso_region_code,
+            custom_label=custom_label or None,
+            notes=notes or None,
+        )
+        items = fetch_cell_tags([cell_id]) if fetch_cell_tags else []
+        return jsonify({"saved": True, "item": items[0] if items else None})
+    except Exception as exc:
+        print(f"[!] Cell tag save error: {exc}", flush=True)
+        return jsonify({
+            "error": True,
+            "message": str(exc),
+        }), 500
+
+
 @app.route("/api/history")
 def history():
     if not fetch_history:
@@ -427,12 +559,26 @@ def history():
         limit = request.args.get("limit", "500")
         start = request.args.get("start")
         end = request.args.get("end")
+        cell_id = request.args.get("cell_id")
+        ensure_db_initialized()
         return jsonify({
             "minutes": int(minutes),
             "limit": int(limit),
             "start": start,
             "end": end,
-            "items": fetch_history(minutes=minutes, limit=limit, start=start, end=end),
+            "cell_id": cell_id,
+            "items": fetch_history(
+                minutes=minutes,
+                limit=limit,
+                start=start,
+                end=end,
+                cell_id=cell_id,
+            ),
+            "cell_groups": fetch_history_cell_groups(
+                minutes=minutes,
+                start=start,
+                end=end,
+            ) if fetch_history_cell_groups else [],
         })
     except Exception as exc:
         print(f"[!] Historical fetch error: {exc}", flush=True)
@@ -503,7 +649,7 @@ if __name__ == "__main__":
     print("[*] Starting router dashboard", flush=True)
     print(f"[*] Default router vendor: {ROUTER_VENDOR}", flush=True)
     if ROUTER_VENDOR == "zte":
-        print("[!] ZTE should be run with a single dashboard replica", flush=True)
+        print("[*] ZTE session renewal enabled; keep replica count reasonable", flush=True)
     print(f"[*] Huawei Router URL: {HUAWEI_ROUTER_URL}", flush=True)
     print(f"[*] ZTE Router URL: {ZTE_ROUTER_URL}", flush=True)
     print(f"[*] Network Type: {NETWORK_TYPE}", flush=True)
