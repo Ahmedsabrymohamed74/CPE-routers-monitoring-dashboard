@@ -17,7 +17,7 @@ ConfigMap values are non-secret runtime settings. Passwords, usernames, session 
 | --- | --- | --- |
 | `NETWORK_TYPE` | `LTE / 4G` | Backward-compatible default display network type. |
 | `OPERATOR_NAME` | `Vodafone Egypt` | Backward-compatible default operator name. |
-| `DASHBOARD_NETWORK_TYPE` | `LTE / 4G` | Default network label shown when a router does not return one. |
+| `DASHBOARD_NETWORK_TYPE` | `LTE / 4G` | Default network label shown w git add docs/configmap.mdhen a router does not return one. |
 | `DASHBOARD_OPERATOR_NAME` | `Vodafone Egypt` | Default operator label used by Huawei and as a fallback for other routers. |
 
 ## Router Selection
@@ -28,10 +28,8 @@ ConfigMap values are non-secret runtime settings. Passwords, usernames, session 
 
 If the selected router is unavailable, the live cards clear and the dashboard shows a toast error. Historical charts remain visible.
 
-The UI dropdown remains available so a user can manually query another configured router. Scaling is an operator decision, not a dropdown behavior:
+The UI dropdown remains available so a user can manually query another configured router. The base Kubernetes manifest runs one dashboard replica, which is the safe default for ZTE because this ZTE CPE invalidates competing sessions. But, by introducing bounded ZTE auth retry plus `ZTE_SESSION_TTL_SECONDS` renewal so stale sessions can be refreshed and usable metrics can recover. But scale resposibly (or refine TTL) so re authing won't be excessive. 
 
-- Use the single-replica overlay when the active/important router is ZTE, because ZTE sessions invalidate each other.
-- Use the scalable overlay only when you are operating against Huawei or another router that tolerates multiple dashboard sessions.
 
 ## Huawei Router
 
@@ -142,15 +140,18 @@ kubectl -n backend rollout restart deployment/router-dashboard
 kubectl -n backend rollout status deployment/router-dashboard --timeout=180s
 ```
 
-For an explicit router mode profile:
+For optional Huawei scaling:
 
 ```bash
-# Single-replica profile: use for ZTE.
-kubectl apply -k k8s_overlays/single-replica
-kubectl -n backend delete hpa router-dashboard --ignore-not-found
-
-# Scalable profile: use for Huawei.
-kubectl apply -k k8s_overlays/scalable
+kubectl -n backend scale deployment/router-dashboard --replicas=2
+kubectl apply -f k8s_mani/optional/router-dashboard-hpa.yml
 ```
 
-Most ConfigMap values are loaded only when the container starts, so restart the Deployment after plain ConfigMap changes if the applied overlay did not create a new rollout.
+To return to the safe ZTE profile:
+
+```bash
+kubectl -n backend delete hpa router-dashboard --ignore-not-found
+kubectl -n backend scale deployment/router-dashboard --replicas=1
+```
+
+Most ConfigMap values are loaded only when the container starts, so restart the Deployment after plain ConfigMap changes.
