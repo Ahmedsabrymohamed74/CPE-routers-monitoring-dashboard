@@ -993,6 +993,10 @@
         <input id="cellTagCellId" readonly>
       </div>
       <div class="field">
+        <label for="cellTagRouterType">Router Type</label>
+        <input id="cellTagRouterType" readonly>
+      </div>
+      <div class="field">
         <label for="cellTagRegion">ISO 3166-2 region</label>
         <select id="cellTagRegion"></select>
       </div>
@@ -1200,6 +1204,7 @@
         const tag = await loadCellTag(currentCellId);
         currentCellTag = tag;
         document.getElementById("cellTagCellId").value = currentCellId;
+        document.getElementById("cellTagRouterType").value = selectedRouterVendor.toUpperCase();
         document.getElementById("cellTagRegion").value = tag?.iso_region_code || "EG-C";
         document.getElementById("cellTagCustomLabel").value = tag?.custom_label || "";
         document.getElementById("cellTagNotes").value = tag?.notes || "";
@@ -1216,6 +1221,7 @@
     async function saveCellTag() {
       const payload = {
         cell_id: document.getElementById("cellTagCellId").value,
+        router_vendor: selectedRouterVendor,
         iso_region_code: document.getElementById("cellTagRegion").value,
         custom_label: document.getElementById("cellTagCustomLabel").value,
         notes: document.getElementById("cellTagNotes").value,
@@ -2005,6 +2011,7 @@
         currentCellId = data.cell_id || null;
         currentCellTag = {
           cell_tag: data.cell_tag,
+          router_vendor: data.cell_tag_router_vendor,
           iso_region_code: data.iso_region_code,
           custom_label: data.custom_label,
         };
