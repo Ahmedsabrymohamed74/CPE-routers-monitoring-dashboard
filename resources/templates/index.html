@@ -1484,6 +1484,11 @@
       document.getElementById("lanEnd").value = localDateTimeValue(end);
     }
 
+    function setCustomRangeInputs(startId, endId, range) {
+      document.getElementById(startId).value = localDateTimeValue(new Date(range.start));
+      document.getElementById(endId).value = localDateTimeValue(new Date(range.end));
+    }
+
     function customRangeFromInputs(startId, endId) {
       const startValue = document.getElementById(startId).value;
       const endValue = document.getElementById(endId).value;
@@ -1519,6 +1524,7 @@
     function syncLanRangeToCellular() {
       if (customHistoryRange) {
         customLanRange = { ...customHistoryRange };
+        setCustomRangeInputs("lanStart", "lanEnd", customLanRange);
         document.querySelectorAll(".lan-range-btn").forEach(item => {
           item.classList.remove("active");
         });
