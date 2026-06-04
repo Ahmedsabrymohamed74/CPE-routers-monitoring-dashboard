@@ -561,10 +561,29 @@
       cursor: pointer;
       display: grid;
       gap: 8px;
-      grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(70px, 0.6fr));
+      grid-template-columns: minmax(0, 1.5fr) repeat(5, minmax(80px, 0.7fr));
       padding: 10px 12px;
       text-align: left;
       width: 100%;
+    }
+
+    .cell-group-header {
+      background: transparent;
+      border-color: transparent;
+      color: #9ca3af;
+      cursor: default;
+      font-size: 13px;
+      font-weight: bold;
+      padding-bottom: 0;
+    }
+
+    .cell-group-sort {
+      background: transparent;
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      padding: 0;
+      text-align: left;
     }
 
     .cell-group-name {
@@ -1014,6 +1033,8 @@
     let currentCellTag = null;
     let currentCellGroups = [];
     let selectedHistoryCellId = "";
+    let cellGroupSortKey = "last_seen";
+    let cellGroupSortDirection = "desc";
     let isoRegions = [];
     let lastErrorMessage = null;
 
@@ -1782,32 +1803,111 @@
       select.value = selectedHistoryCellId;
     }
 
+    function cellGroupSortLabel(key) {
+      return cellGroupSortKey === key
+        ? (cellGroupSortDirection === "asc" ? " ▲" : " ▼")
+        : "";
+    }
+
+    function cellGroupSortValue(group, key) {
+      if (key === "cell_label") {
+        return cellDisplayLabel(group).toLowerCase();
+      }
+      if (key === "last_seen") {
+        return new Date(group.last_seen || 0).getTime();
+      }
+      const value = Number(group[key]);
+      return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
+    }
+
+    function sortedCellGroups(groups) {
+      const direction = cellGroupSortDirection === "asc" ? 1 : -1;
+      return [...groups].sort((left, right) => {
+        const leftValue = cellGroupSortValue(left, cellGroupSortKey);
+        const rightValue = cellGroupSortValue(right, cellGroupSortKey);
+
+        if (leftValue < rightValue) {
+          return -1 * direction;
+        }
+        if (leftValue > rightValue) {
+          return 1 * direction;
+        }
+        return cellDisplayLabel(left).localeCompare(cellDisplayLabel(right));
+      });
+    }
+
+    function setCellGroupSort(key) {
+      if (cellGroupSortKey === key) {
+        cellGroupSortDirection = cellGroupSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        cellGroupSortKey = key;
+        cellGroupSortDirection = key === "cell_label" ? "asc" : "desc";
+      }
+      renderCellGroups(currentCellGroups);
+    }
+
+    function formatGroupAverage(value) {
+      return value === null || value === undefined ? "--" : Number(value).toFixed(1);
+    }
+
     function renderCellGroups(groups) {
       const container = document.getElementById("cellGroupList");
       if (!groups || groups.length === 0) {
         container.innerHTML = `
+          <div class="cell-group-item cell-group-header">
+            <button class="cell-group-sort" data-sort-key="cell_label">Cell ID Profile${cellGroupSortLabel("cell_label")}</button>
+            <button class="cell-group-sort" data-sort-key="sample_count">Samples${cellGroupSortLabel("sample_count")}</button>
+            <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
+            <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
+            <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+            <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
+          </div>
           <div class="cell-group-item">
             <div class="cell-group-name">No Cell IDs in selected range</div>
           </div>
         `;
+        bindCellGroupSortHeaders(container);
         return;
       }
 
-      container.innerHTML = groups.map(group => `
+      container.innerHTML = `
+        <div class="cell-group-item cell-group-header">
+          <button class="cell-group-sort" data-sort-key="cell_label">Cell ID Profile${cellGroupSortLabel("cell_label")}</button>
+          <button class="cell-group-sort" data-sort-key="sample_count">Samples${cellGroupSortLabel("sample_count")}</button>
+          <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
+          <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
+          <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+          <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
+        </div>
+      ` + sortedCellGroups(groups).map(group => `
         <button class="cell-group-item" data-cell-id="${escapeHtml(group.cell_id)}" type="button">
           <div class="cell-group-name">${escapeHtml(cellDisplayLabel(group))}</div>
-          <div class="cell-group-stat">${Number(group.sample_count || 0)} samples</div>
-          <div class="cell-group-stat">RSRP ${group.avg_rsrp === null ? "--" : Number(group.avg_rsrp).toFixed(1)}</div>
-          <div class="cell-group-stat">RSRQ ${group.avg_rsrq === null ? "--" : Number(group.avg_rsrq).toFixed(1)}</div>
-          <div class="cell-group-stat">SINR ${group.avg_sinr === null ? "--" : Number(group.avg_sinr).toFixed(1)}</div>
+          <div class="cell-group-stat">${Number(group.sample_count || 0)}</div>
+          <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrp)}</div>
+          <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrq)}</div>
+          <div class="cell-group-stat">${formatGroupAverage(group.avg_sinr)}</div>
+          <div class="cell-group-stat">${new Date(group.last_seen).toLocaleString()}</div>
         </button>
       `).join("");
 
+      bindCellGroupSortHeaders(container);
       container.querySelectorAll(".cell-group-item").forEach(button => {
+        if (button.classList.contains("cell-group-header")) {
+          return;
+        }
         button.addEventListener("click", () => {
           selectedHistoryCellId = button.dataset.cellId || "";
           document.getElementById("historyCellFilter").value = selectedHistoryCellId;
           refreshHistory();
+        });
+      });
+    }
+
+    function bindCellGroupSortHeaders(container) {
+      container.querySelectorAll(".cell-group-sort").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          setCellGroupSort(button.dataset.sortKey);
         });
       });
     }
