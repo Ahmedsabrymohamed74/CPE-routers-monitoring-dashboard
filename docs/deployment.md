@@ -50,7 +50,11 @@ Prerequisites:
 - Existing Kubernetes Secret `router-dashboard-secret`.
 - Existing TimescaleDB/PostgreSQL service reachable as `timescaledb:5432`.
 - Existing TLS Secret `router-dashboard-tls` if TLS ingress is enabled.
-- Traefik ingress controller for `ingressClassName: traefik`.
+
+The checked-in Kustomize manifests also install the Traefik ingress controller,
+its RBAC, default `IngressClass`, and LAN NodePort Service. Traefik is managed
+with `kubectl apply -k k8s_mani`; do not patch scheduling constraints into the
+live Deployment.
 
 If deploying a GitLab-built image manually:
 

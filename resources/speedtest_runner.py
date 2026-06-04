@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -30,8 +30,8 @@ CLOUDFLARE_COLO_LOCATIONS = {
 }
 
 
-def utc_now_iso():
-    return datetime.now(timezone.utc).isoformat()
+def local_now_iso():
+    return datetime.now().astimezone().isoformat()
 
 
 def parse_cloudflare_trace_location(text):
@@ -116,7 +116,7 @@ def measure_upload_mbps(url, byte_count, timeout_seconds, parallel_streams):
 
 
 def run_speedtest(config):
-    started_at = utc_now_iso()
+    started_at = local_now_iso()
     latency_ms, server_location = measure_latency_ms(
         config["latency_url"],
         config["latency_attempts"],

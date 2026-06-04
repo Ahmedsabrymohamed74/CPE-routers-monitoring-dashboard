@@ -36,6 +36,20 @@ class ZteRouterClient(BaseRouterClient):
         "Z5g_CELL_ID",
         "Z5g_SINR",
         "cell_id",
+        "enodeb_id",
+        "eNBID",
+        "lte_tac",
+        "tac",
+        "plmn",
+        "mcc_mnc",
+        "lte_mcc",
+        "lte_mnc",
+        "transmode",
+        "trans_mode",
+        "lte_transmode",
+        "cqi",
+        "cqi0",
+        "lte_cqi",
         "lte_ca_scell_arfcn",
         "lte_multi_ca_scell_info",
         "Z5g_PCI",
@@ -339,6 +353,27 @@ class ZteRouterClient(BaseRouterClient):
             return False
         return time.monotonic() - self.authenticated_at >= self.session_ttl_seconds
 
+    @staticmethod
+    def _derive_lte_enodeb_id(cell_id):
+        try:
+            value = int(str(cell_id).strip())
+        except (TypeError, ValueError):
+            return None
+        if value <= 0:
+            return None
+        return str(value // 256)
+
+    def _plmn(self, signal):
+        plmn = self.first_value(signal.get("plmn"), signal.get("mcc_mnc"))
+        if plmn:
+            return plmn
+
+        mcc = self.clean_value(signal.get("lte_mcc"))
+        mnc = self.clean_value(signal.get("lte_mnc"))
+        if mcc and mnc:
+            return f"{mcc}{mnc}"
+        return None
+
     def login(self):
         challenge = self._auth_context()
         errors = []
@@ -455,14 +490,20 @@ class ZteRouterClient(BaseRouterClient):
         if pcell_bw or scell_bw:
             dl_bandwidth = " / ".join(value for value in (pcell_bw, scell_bw) if value)
 
+        cell_id = self.first_value(signal.get("cell_id"), signal.get("Z5g_CELL_ID"))
+
         return {
             "router_vendor": self.vendor,
             "router_name": self.router_name,
             "network_type": self.clean_value(signal.get("network_type")) or network_type,
             "operator": operator_name,
             "pci": self.first_value(signal.get("Z_PCI"), signal.get("Z5g_PCI")),
-            "cell_id": self.first_value(signal.get("cell_id"), signal.get("Z5g_CELL_ID")),
-            "enodeb_id": None,
+            "cell_id": cell_id,
+            "enodeb_id": self.first_value(
+                signal.get("enodeb_id"),
+                signal.get("eNBID"),
+                self._derive_lte_enodeb_id(cell_id),
+            ),
             "rsrp": self.first_value(signal.get("lte_rsrp"), signal.get("Z5g_rsrp")),
             "rsrq": self.first_value(signal.get("rsrq"), signal.get("Z_rsrq"), signal.get("lte_rsrq")),
             "sinr": self.first_value(signal.get("sinr"), signal.get("Z5g_SINR"), signal.get("Z5g_snr")),
@@ -476,11 +517,15 @@ class ZteRouterClient(BaseRouterClient):
             ),
             "ul_bandwidth": None,
             "dl_bandwidth": dl_bandwidth,
-            "tac": None,
-            "plmn": None,
+            "tac": self.first_value(signal.get("lte_tac"), signal.get("tac")),
+            "plmn": self._plmn(signal),
             "rrc_status": None,
             "txpower": None,
-            "transmode": None,
-            "cqi0": None,
+            "transmode": self.first_value(
+                signal.get("transmode"),
+                signal.get("trans_mode"),
+                signal.get("lte_transmode"),
+            ),
+            "cqi0": self.first_value(signal.get("cqi0"), signal.get("cqi"), signal.get("lte_cqi")),
             "raw_signal": signal,
         }

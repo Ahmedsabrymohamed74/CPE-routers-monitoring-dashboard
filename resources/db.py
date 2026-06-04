@@ -21,7 +21,7 @@ def get_conn():
 
     for attempt in range(10):
         try:
-            return psycopg2.connect(
+            conn = psycopg2.connect(
                 host=os.getenv("DB_HOST", "timescaledb"),
                 port=int(os.getenv("DB_PORT", "5432")),
                 dbname=os.getenv("DB_NAME"),
@@ -29,6 +29,11 @@ def get_conn():
                 password=os.getenv("DB_PASSWORD"),
                 connect_timeout=5,
             )
+            timezone_name = os.getenv("TZ")
+            if timezone_name:
+                with conn.cursor() as cur:
+                    cur.execute("SET TIME ZONE %s;", (timezone_name,))
+            return conn
         except psycopg2.OperationalError as exc:
             last_error = exc
             print(f"[!] DB connection attempt {attempt + 1}/10 failed: {exc}")
@@ -95,15 +100,29 @@ def init_db():
 
     CREATE TABLE IF NOT EXISTS cell_id_tags (
         cell_id TEXT PRIMARY KEY,
+        router_vendor TEXT,
         iso_region_code TEXT NOT NULL,
         custom_label TEXT,
+        profile_enodeb_id TEXT,
+        profile_tac TEXT,
+        profile_plmn TEXT,
+        profile_transmode TEXT,
+        profile_cqi0 TEXT,
+        custom_fields JSONB NOT NULL DEFAULT '{}'::jsonb,
         notes TEXT,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
     ALTER TABLE cell_id_tags
+        ADD COLUMN IF NOT EXISTS router_vendor TEXT,
         ADD COLUMN IF NOT EXISTS iso_region_code TEXT,
         ADD COLUMN IF NOT EXISTS custom_label TEXT,
+        ADD COLUMN IF NOT EXISTS profile_enodeb_id TEXT,
+        ADD COLUMN IF NOT EXISTS profile_tac TEXT,
+        ADD COLUMN IF NOT EXISTS profile_plmn TEXT,
+        ADD COLUMN IF NOT EXISTS profile_transmode TEXT,
+        ADD COLUMN IF NOT EXISTS profile_cqi0 TEXT,
+        ADD COLUMN IF NOT EXISTS custom_fields JSONB NOT NULL DEFAULT '{}'::jsonb,
         ADD COLUMN IF NOT EXISTS notes TEXT,
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
@@ -328,13 +347,27 @@ def cell_tag_label(row):
     return custom_label or iso_region_code
 
 
-def upsert_cell_tag(cell_id, iso_region_code, custom_label=None, notes=None):
+def upsert_cell_tag(
+    cell_id,
+    iso_region_code,
+    custom_label=None,
+    notes=None,
+    router_vendor=None,
+    profile_enodeb_id=None,
+    profile_tac=None,
+    profile_plmn=None,
+    profile_transmode=None,
+    profile_cqi0=None,
+    custom_fields=None,
+):
     if not db_config_available():
         return
 
     normalized_cell_id = str(cell_id or "").strip()
     normalized_iso_region_code = str(iso_region_code or "").strip()
     normalized_custom_label = str(custom_label or "").strip() or None
+    normalized_router_vendor = str(router_vendor or "").strip().lower() or None
+    normalized_custom_fields = custom_fields if isinstance(custom_fields, dict) else {}
     if not normalized_cell_id:
         raise ValueError("cell_id is required")
     if not normalized_iso_region_code:
@@ -343,16 +376,30 @@ def upsert_cell_tag(cell_id, iso_region_code, custom_label=None, notes=None):
     sql = """
     INSERT INTO cell_id_tags (
         cell_id,
+        router_vendor,
         iso_region_code,
         custom_label,
+        profile_enodeb_id,
+        profile_tac,
+        profile_plmn,
+        profile_transmode,
+        profile_cqi0,
+        custom_fields,
         notes,
         updated_at
     )
-    VALUES (%s, %s, %s, %s, now())
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
     ON CONFLICT (cell_id)
     DO UPDATE SET
+        router_vendor = EXCLUDED.router_vendor,
         iso_region_code = EXCLUDED.iso_region_code,
         custom_label = EXCLUDED.custom_label,
+        profile_enodeb_id = EXCLUDED.profile_enodeb_id,
+        profile_tac = EXCLUDED.profile_tac,
+        profile_plmn = EXCLUDED.profile_plmn,
+        profile_transmode = EXCLUDED.profile_transmode,
+        profile_cqi0 = EXCLUDED.profile_cqi0,
+        custom_fields = EXCLUDED.custom_fields,
         notes = EXCLUDED.notes,
         updated_at = now();
     """
@@ -361,7 +408,19 @@ def upsert_cell_tag(cell_id, iso_region_code, custom_label=None, notes=None):
         with conn.cursor() as cur:
             cur.execute(
                 sql,
-                (normalized_cell_id, normalized_iso_region_code, normalized_custom_label, notes),
+                (
+                    normalized_cell_id,
+                    normalized_router_vendor,
+                    normalized_iso_region_code,
+                    normalized_custom_label,
+                    profile_enodeb_id,
+                    profile_tac,
+                    profile_plmn,
+                    profile_transmode,
+                    profile_cqi0,
+                    Json(normalized_custom_fields),
+                    notes,
+                ),
             )
 
 
@@ -379,7 +438,19 @@ def fetch_cell_tags(cell_ids=None):
         params.append(normalized_cell_ids)
 
     sql = f"""
-    SELECT cell_id, iso_region_code, custom_label, notes, updated_at
+    SELECT
+        cell_id,
+        router_vendor,
+        iso_region_code,
+        custom_label,
+        profile_enodeb_id,
+        profile_tac,
+        profile_plmn,
+        profile_transmode,
+        profile_cqi0,
+        custom_fields,
+        notes,
+        updated_at
     FROM cell_id_tags
     {where_clause}
     ORDER BY iso_region_code, custom_label, cell_id;
@@ -391,11 +462,31 @@ def fetch_cell_tags(cell_ids=None):
             rows = cur.fetchall()
 
     result = []
-    for cell_id, iso_region_code, custom_label, notes, updated_at in rows:
+    for (
+        cell_id,
+        router_vendor,
+        iso_region_code,
+        custom_label,
+        profile_enodeb_id,
+        profile_tac,
+        profile_plmn,
+        profile_transmode,
+        profile_cqi0,
+        custom_fields,
+        notes,
+        updated_at,
+    ) in rows:
         item = {
             "cell_id": cell_id,
+            "router_vendor": router_vendor,
             "iso_region_code": iso_region_code,
             "custom_label": custom_label,
+            "profile_enodeb_id": profile_enodeb_id,
+            "profile_tac": profile_tac,
+            "profile_plmn": profile_plmn,
+            "profile_transmode": profile_transmode,
+            "profile_cqi0": profile_cqi0,
+            "custom_fields": custom_fields or {},
             "notes": notes,
             "updated_at": updated_at.isoformat(),
         }
@@ -426,6 +517,7 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
     sql = f"""
     SELECT
         cm.cell_id,
+        cit.router_vendor,
         cit.iso_region_code,
         cit.custom_label,
         cit.notes,
@@ -441,7 +533,7 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
     WHERE {where_clause}
       AND cm.cell_id IS NOT NULL
       AND cm.cell_id <> ''
-    GROUP BY cm.cell_id, cit.iso_region_code, cit.custom_label, cit.notes
+    GROUP BY cm.cell_id, cit.router_vendor, cit.iso_region_code, cit.custom_label, cit.notes
     ORDER BY last_seen DESC, sample_count DESC;
     """
 
@@ -452,6 +544,7 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
 
     keys = [
         "cell_id",
+        "router_vendor",
         "iso_region_code",
         "custom_label",
         "notes",
@@ -510,6 +603,7 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
         cm.operator,
         cm.pci,
         cm.cell_id,
+        cit.router_vendor,
         cit.iso_region_code,
         cit.custom_label,
         cit.notes,
@@ -549,6 +643,7 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
         "operator",
         "pci",
         "cell_id",
+        "router_vendor",
         "iso_region_code",
         "custom_label",
         "notes",

@@ -76,6 +76,17 @@
       resize: vertical;
     }
 
+    .custom-field-row {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      margin-top: 8px;
+    }
+
+    .custom-field-row input {
+      min-width: 0;
+    }
+
     button {
       border: 0;
       border-radius: 10px;
@@ -561,10 +572,29 @@
       cursor: pointer;
       display: grid;
       gap: 8px;
-      grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(70px, 0.6fr));
+      grid-template-columns: minmax(0, 1.5fr) repeat(5, minmax(80px, 0.7fr));
       padding: 10px 12px;
       text-align: left;
       width: 100%;
+    }
+
+    .cell-group-header {
+      background: transparent;
+      border-color: transparent;
+      color: #9ca3af;
+      cursor: default;
+      font-size: 13px;
+      font-weight: bold;
+      padding-bottom: 0;
+    }
+
+    .cell-group-sort {
+      background: transparent;
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      padding: 0;
+      text-align: left;
     }
 
     .cell-group-name {
@@ -576,6 +606,111 @@
     .cell-group-stat {
       color: #d1d5db;
       font-size: 13px;
+    }
+
+    body.light-theme {
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    body.light-theme .subtitle,
+    body.light-theme .label,
+    body.light-theme .toolbar-label,
+    body.light-theme .field label,
+    body.light-theme .history-range-status,
+    body.light-theme .history-table th,
+    body.light-theme .cell-group-header,
+    body.light-theme .cell-group-stat,
+    body.light-theme .history-chart-title,
+    body.light-theme .status,
+    body.light-theme .speedtest-note {
+      color: #4b5563;
+    }
+
+    body.light-theme .toolbar,
+    body.light-theme .history-panel,
+    body.light-theme .speedtest-panel,
+    body.light-theme .card,
+    body.light-theme .modal {
+      background: #ffffff;
+      color: #111827;
+    }
+
+    body.light-theme .dashboard-group {
+      background: rgba(229, 231, 235, 0.9);
+    }
+
+    body.light-theme .section-title,
+    body.light-theme .metric-subtitle,
+    body.light-theme .raw-box summary,
+    body.light-theme .history-table-details summary {
+      color: #111827;
+    }
+
+    body.light-theme .card:hover {
+      background: #f9fafb;
+    }
+
+    body.light-theme select,
+    body.light-theme .field input,
+    body.light-theme .field textarea {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+
+    body.light-theme button {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    body.light-theme button:hover {
+      background: #d1d5db;
+    }
+
+    body.light-theme button.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    body.light-theme .manual-refresh,
+    body.light-theme .speedtest-run {
+      background: #059669;
+      color: #ffffff;
+    }
+
+    body.light-theme .manual-refresh:hover,
+    body.light-theme .speedtest-run:hover {
+      background: #047857;
+    }
+
+    body.light-theme .tooltip,
+    body.light-theme .chart-tooltip {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+
+    body.light-theme .tooltip::after {
+      border-color: #ffffff transparent transparent transparent;
+    }
+
+    body.light-theme .raw-box,
+    body.light-theme .history-chart,
+    body.light-theme .history-table-details,
+    body.light-theme .cell-group-item {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+
+    body.light-theme .raw-box pre {
+      color: #374151;
+    }
+
+    body.light-theme .history-table th,
+    body.light-theme .history-table td {
+      border-bottom-color: #e5e7eb;
     }
 
     @media (max-width: 1100px) {
@@ -643,6 +778,7 @@
     <button class="interval-btn" data-interval="30000">30s</button>
     <button class="interval-btn" data-interval="60000">60s</button>
 
+    <button id="themeToggle">Light mode</button>
     <button class="manual-refresh" id="manualRefresh">Refresh now</button>
   </div>
 
@@ -817,8 +953,8 @@
     </summary>
 
     <div class="history-panel">
-      <div class="metric-subsection">
-        <h2 class="metric-subtitle">Cellular Metrics</h2>
+      <details class="metric-subsection" open>
+        <summary class="metric-subtitle">Cellular Metrics</summary>
         <div class="history-toolbar">
           <span class="toolbar-label">Range:</span>
           <button class="history-range-btn" data-minutes="15">15m</button>
@@ -828,7 +964,7 @@
           <button class="history-range-btn" data-minutes="1440">24h</button>
           <button class="history-range-btn" data-minutes="4320">3d</button>
           <button class="history-range-btn" data-minutes="10080">7d</button>
-          <span class="toolbar-label">Cell:</span>
+          <span class="toolbar-label">Choose tower / Cell ID:</span>
           <select id="historyCellFilter">
             <option value="">All cells</option>
           </select>
@@ -861,7 +997,7 @@
             <div class="chart-tooltip" id="historyTooltipSinr"></div>
           </div>
         </div>
-      </div>
+      </details>
 
       <details class="history-table-details" open>
         <summary>Cell ID groups</summary>
@@ -974,6 +1110,10 @@
         <input id="cellTagCellId" readonly>
       </div>
       <div class="field">
+        <label for="cellTagRouterType">Router Type</label>
+        <input id="cellTagRouterType" readonly>
+      </div>
+      <div class="field">
         <label for="cellTagRegion">ISO 3166-2 region</label>
         <select id="cellTagRegion"></select>
       </div>
@@ -982,8 +1122,29 @@
         <input id="cellTagCustomLabel" placeholder="Amwaj North Coast">
       </div>
       <div class="field">
-        <label for="cellTagNotes">Notes</label>
-        <textarea id="cellTagNotes" placeholder="Optional details"></textarea>
+        <label for="cellProfileEnodeb">eNodeB ID</label>
+        <input id="cellProfileEnodeb" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfileTac">TAC</label>
+        <input id="cellProfileTac" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfilePlmn">PLMN</label>
+        <input id="cellProfilePlmn" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfileTransmode">Transmission Mode</label>
+        <input id="cellProfileTransmode" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfileCqi">CQI</label>
+        <input id="cellProfileCqi" readonly>
+      </div>
+      <div class="field">
+        <label>Custom fields</label>
+        <div id="cellProfileCustomFields"></div>
+        <button id="addCellProfileField" type="button">Add field</button>
       </div>
       <div class="modal-actions">
         <button id="cellTagCancel">Cancel</button>
@@ -1006,14 +1167,18 @@
     let customLanRange = null;
     let syncRangesEnabled = false;
     let selectedRouterVendor = "huawei";
+    let currentTheme = localStorage.getItem("dashboardTheme") || "dark";
     let refreshTimer = null;
     let isFetching = false;
     let currentHistoryItems = [];
     let currentSpeedTestItems = [];
     let currentCellId = null;
     let currentCellTag = null;
+    let currentCellProfileSource = {};
     let currentCellGroups = [];
     let selectedHistoryCellId = "";
+    let cellGroupSortKey = "last_seen";
+    let cellGroupSortDirection = "desc";
     let isoRegions = [];
     let lastErrorMessage = null;
 
@@ -1076,6 +1241,20 @@
         value === null || value === undefined || value === "" ? "--" : value;
     }
 
+    function applyTheme(theme) {
+      currentTheme = theme === "light" ? "light" : "dark";
+      document.body.classList.toggle("light-theme", currentTheme === "light");
+      localStorage.setItem("dashboardTheme", currentTheme);
+      document.getElementById("themeToggle").textContent =
+        currentTheme === "light" ? "Dark mode" : "Light mode";
+    }
+
+    function toggleTheme() {
+      applyTheme(currentTheme === "light" ? "dark" : "light");
+      drawHistoryCharts(currentHistoryItems);
+      drawLanCharts(currentSpeedTestItems);
+    }
+
     function escapeHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g, character => ({
         "&": "&amp;",
@@ -1122,6 +1301,7 @@
 
       currentCellId = null;
       currentCellTag = null;
+      currentCellProfileSource = {};
       document.getElementById("raw").textContent = "";
     }
 
@@ -1165,6 +1345,54 @@
       return (payload.items || [])[0] || null;
     }
 
+    function setProfileField(id, value) {
+      document.getElementById(id).value =
+        value === null || value === undefined || value === "" ? "--" : value;
+    }
+
+    function readProfileField(id) {
+      const value = document.getElementById(id).value.trim();
+      return value === "--" ? "" : value;
+    }
+
+    function renderCustomFields(fields = {}) {
+      const container = document.getElementById("cellProfileCustomFields");
+      const entries = Object.entries(fields);
+      const rows = entries.length > 0 ? entries : [["", ""]];
+
+      container.innerHTML = rows.map(([key, value]) => `
+        <div class="custom-field-row">
+          <input class="custom-field-key" placeholder="Field" value="${escapeHtml(key)}">
+          <input class="custom-field-value" placeholder="Value" value="${escapeHtml(value)}">
+          <button class="custom-field-remove" type="button" title="Remove field">x</button>
+        </div>
+      `).join("");
+
+      container.querySelectorAll(".custom-field-remove").forEach(button => {
+        button.addEventListener("click", () => {
+          button.closest(".custom-field-row").remove();
+        });
+      });
+    }
+
+    function readCustomFields() {
+      const fields = {};
+      document.querySelectorAll("#cellProfileCustomFields .custom-field-row").forEach(row => {
+        const key = row.querySelector(".custom-field-key").value.trim();
+        const value = row.querySelector(".custom-field-value").value.trim();
+        if (key) {
+          fields[key] = value;
+        }
+      });
+      return fields;
+    }
+
+    function addCustomFieldRow() {
+      const fields = readCustomFields();
+      fields[""] = "";
+      renderCustomFields(fields);
+    }
+
     async function openCellTagModal() {
       if (!currentCellId) {
         showErrorPopup("Cell tag error", "No live Cell ID is available yet");
@@ -1179,9 +1407,15 @@
         const tag = await loadCellTag(currentCellId);
         currentCellTag = tag;
         document.getElementById("cellTagCellId").value = currentCellId;
+        document.getElementById("cellTagRouterType").value = selectedRouterVendor.toUpperCase();
         document.getElementById("cellTagRegion").value = tag?.iso_region_code || "EG-C";
         document.getElementById("cellTagCustomLabel").value = tag?.custom_label || "";
-        document.getElementById("cellTagNotes").value = tag?.notes || "";
+        setProfileField("cellProfileEnodeb", tag?.profile_enodeb_id || currentCellProfileSource.enodeb_id);
+        setProfileField("cellProfileTac", tag?.profile_tac || currentCellProfileSource.tac);
+        setProfileField("cellProfilePlmn", tag?.profile_plmn || currentCellProfileSource.plmn);
+        setProfileField("cellProfileTransmode", tag?.profile_transmode || currentCellProfileSource.transmode);
+        setProfileField("cellProfileCqi", tag?.profile_cqi0 || currentCellProfileSource.cqi0);
+        renderCustomFields(tag?.custom_fields || {});
         document.getElementById("cellTagModal").classList.add("visible");
       } catch (err) {
         showErrorPopup("Cell tag error", err.message || err);
@@ -1195,9 +1429,15 @@
     async function saveCellTag() {
       const payload = {
         cell_id: document.getElementById("cellTagCellId").value,
+        router_vendor: selectedRouterVendor,
         iso_region_code: document.getElementById("cellTagRegion").value,
         custom_label: document.getElementById("cellTagCustomLabel").value,
-        notes: document.getElementById("cellTagNotes").value,
+        profile_enodeb_id: readProfileField("cellProfileEnodeb"),
+        profile_tac: readProfileField("cellProfileTac"),
+        profile_plmn: readProfileField("cellProfilePlmn"),
+        profile_transmode: readProfileField("cellProfileTransmode"),
+        profile_cqi0: readProfileField("cellProfileCqi"),
+        custom_fields: readCustomFields(),
       };
 
       try {
@@ -1463,6 +1703,11 @@
       document.getElementById("lanEnd").value = localDateTimeValue(end);
     }
 
+    function setCustomRangeInputs(startId, endId, range) {
+      document.getElementById(startId).value = localDateTimeValue(new Date(range.start));
+      document.getElementById(endId).value = localDateTimeValue(new Date(range.end));
+    }
+
     function customRangeFromInputs(startId, endId) {
       const startValue = document.getElementById(startId).value;
       const endValue = document.getElementById(endId).value;
@@ -1498,6 +1743,7 @@
     function syncLanRangeToCellular() {
       if (customHistoryRange) {
         customLanRange = { ...customHistoryRange };
+        setCustomRangeInputs("lanStart", "lanEnd", customLanRange);
         document.querySelectorAll(".lan-range-btn").forEach(item => {
           item.classList.remove("active");
         });
@@ -1516,8 +1762,31 @@
       button.textContent = syncRangesEnabled ? "Ranges synced" : "Sync ranges";
     }
 
+    function chartTheme() {
+      if (currentTheme === "light") {
+        return {
+          background: "#ffffff",
+          axis: "#9ca3af",
+          grid: "#e5e7eb",
+          label: "#4b5563",
+          marker: "#374151",
+          point: "#111827",
+        };
+      }
+
+      return {
+        background: "#030712",
+        axis: "#4b5563",
+        grid: "#374151",
+        label: "#9ca3af",
+        marker: "#d1d5db",
+        point: "#e5e7eb",
+      };
+    }
+
     function drawMetricChart(metric, items, hoverIndex = null) {
       const canvas = document.getElementById(metric.canvasId);
+      const theme = chartTheme();
       const rect = canvas.getBoundingClientRect();
       const scale = window.devicePixelRatio || 1;
       canvas.width = Math.max(1, Math.floor(rect.width * scale));
@@ -1526,7 +1795,7 @@
       const ctx = canvas.getContext("2d");
       ctx.scale(scale, scale);
       ctx.clearRect(0, 0, rect.width, rect.height);
-      ctx.fillStyle = "#030712";
+      ctx.fillStyle = theme.background;
       ctx.fillRect(0, 0, rect.width, rect.height);
 
       const points = items.map((item, index) => ({
@@ -1539,7 +1808,7 @@
         .filter(value => value !== null);
 
       if (points.length < 2 || values.length === 0) {
-        ctx.fillStyle = "#9ca3af";
+        ctx.fillStyle = theme.label;
         ctx.font = "14px Arial";
         ctx.fillText("Not enough historical data yet", 18, 34);
         return;
@@ -1556,7 +1825,7 @@
       const displayMax = maxValue + spread * 0.1;
       const displaySpread = Math.max(1, displayMax - displayMin);
 
-      ctx.strokeStyle = "#4b5563";
+      ctx.strokeStyle = theme.axis;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(padding.left, padding.top);
@@ -1564,8 +1833,8 @@
       ctx.lineTo(rect.width - padding.right, padding.top + chartHeight);
       ctx.stroke();
 
-      ctx.strokeStyle = "#374151";
-      ctx.fillStyle = "#9ca3af";
+      ctx.strokeStyle = theme.grid;
+      ctx.fillStyle = theme.label;
       ctx.font = "11px Arial";
       for (let i = 0; i <= 4; i++) {
         const y = padding.top + (chartHeight / 4) * i;
@@ -1598,7 +1867,7 @@
         labelIndexes.push(Math.round(((points.length - 1) * i) / (xTickCount - 1)));
       }
 
-      ctx.fillStyle = "#9ca3af";
+      ctx.fillStyle = theme.label;
       ctx.font = "11px Arial";
       Array.from(new Set(labelIndexes)).forEach((index, labelPosition, allLabels) => {
         const item = items[index];
@@ -1618,7 +1887,7 @@
             : x - width / 2;
         ctx.fillText(label, textX, rect.height - 10);
 
-        ctx.strokeStyle = "#4b5563";
+        ctx.strokeStyle = theme.axis;
         ctx.beginPath();
         ctx.moveTo(x, padding.top + chartHeight);
         ctx.lineTo(x, padding.top + chartHeight + 5);
@@ -1631,7 +1900,7 @@
       ].forEach(marker => {
         const y = yFor(marker.value);
         ctx.save();
-        ctx.strokeStyle = "#d1d5db";
+        ctx.strokeStyle = theme.marker;
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
@@ -1640,7 +1909,7 @@
         ctx.stroke();
         ctx.restore();
 
-        ctx.fillStyle = "#d1d5db";
+        ctx.fillStyle = theme.marker;
         ctx.font = "11px Arial";
         ctx.fillText(
           marker.label,
@@ -1685,7 +1954,7 @@
       if (avgPoint) {
         const x = xFor(avgPoint.index);
         const y = yFor(avgPoint.value);
-        ctx.fillStyle = "#e5e7eb";
+        ctx.fillStyle = theme.point;
         ctx.font = "11px Arial";
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, Math.PI * 2);
@@ -1702,7 +1971,7 @@
         const x = xFor(hoverPoint.index);
         const y = yFor(hoverPoint.value);
 
-        ctx.strokeStyle = "#9ca3af";
+        ctx.strokeStyle = theme.label;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x, padding.top);
@@ -1782,32 +2051,111 @@
       select.value = selectedHistoryCellId;
     }
 
+    function cellGroupSortLabel(key) {
+      return cellGroupSortKey === key
+        ? (cellGroupSortDirection === "asc" ? " ▲" : " ▼")
+        : "";
+    }
+
+    function cellGroupSortValue(group, key) {
+      if (key === "cell_label") {
+        return cellDisplayLabel(group).toLowerCase();
+      }
+      if (key === "last_seen") {
+        return new Date(group.last_seen || 0).getTime();
+      }
+      const value = Number(group[key]);
+      return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
+    }
+
+    function sortedCellGroups(groups) {
+      const direction = cellGroupSortDirection === "asc" ? 1 : -1;
+      return [...groups].sort((left, right) => {
+        const leftValue = cellGroupSortValue(left, cellGroupSortKey);
+        const rightValue = cellGroupSortValue(right, cellGroupSortKey);
+
+        if (leftValue < rightValue) {
+          return -1 * direction;
+        }
+        if (leftValue > rightValue) {
+          return 1 * direction;
+        }
+        return cellDisplayLabel(left).localeCompare(cellDisplayLabel(right));
+      });
+    }
+
+    function setCellGroupSort(key) {
+      if (cellGroupSortKey === key) {
+        cellGroupSortDirection = cellGroupSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        cellGroupSortKey = key;
+        cellGroupSortDirection = key === "cell_label" ? "asc" : "desc";
+      }
+      renderCellGroups(currentCellGroups);
+    }
+
+    function formatGroupAverage(value) {
+      return value === null || value === undefined ? "--" : Number(value).toFixed(1);
+    }
+
     function renderCellGroups(groups) {
       const container = document.getElementById("cellGroupList");
       if (!groups || groups.length === 0) {
         container.innerHTML = `
+          <div class="cell-group-item cell-group-header">
+            <button class="cell-group-sort" data-sort-key="cell_label">Cell ID Profile${cellGroupSortLabel("cell_label")}</button>
+            <button class="cell-group-sort" data-sort-key="sample_count">Samples${cellGroupSortLabel("sample_count")}</button>
+            <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
+            <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
+            <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+            <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
+          </div>
           <div class="cell-group-item">
             <div class="cell-group-name">No Cell IDs in selected range</div>
           </div>
         `;
+        bindCellGroupSortHeaders(container);
         return;
       }
 
-      container.innerHTML = groups.map(group => `
+      container.innerHTML = `
+        <div class="cell-group-item cell-group-header">
+          <button class="cell-group-sort" data-sort-key="cell_label">Cell ID Profile${cellGroupSortLabel("cell_label")}</button>
+          <button class="cell-group-sort" data-sort-key="sample_count">Samples${cellGroupSortLabel("sample_count")}</button>
+          <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
+          <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
+          <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+          <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
+        </div>
+      ` + sortedCellGroups(groups).map(group => `
         <button class="cell-group-item" data-cell-id="${escapeHtml(group.cell_id)}" type="button">
           <div class="cell-group-name">${escapeHtml(cellDisplayLabel(group))}</div>
-          <div class="cell-group-stat">${Number(group.sample_count || 0)} samples</div>
-          <div class="cell-group-stat">RSRP ${group.avg_rsrp === null ? "--" : Number(group.avg_rsrp).toFixed(1)}</div>
-          <div class="cell-group-stat">RSRQ ${group.avg_rsrq === null ? "--" : Number(group.avg_rsrq).toFixed(1)}</div>
-          <div class="cell-group-stat">SINR ${group.avg_sinr === null ? "--" : Number(group.avg_sinr).toFixed(1)}</div>
+          <div class="cell-group-stat">${Number(group.sample_count || 0)}</div>
+          <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrp)}</div>
+          <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrq)}</div>
+          <div class="cell-group-stat">${formatGroupAverage(group.avg_sinr)}</div>
+          <div class="cell-group-stat">${new Date(group.last_seen).toLocaleString()}</div>
         </button>
       `).join("");
 
+      bindCellGroupSortHeaders(container);
       container.querySelectorAll(".cell-group-item").forEach(button => {
+        if (button.classList.contains("cell-group-header")) {
+          return;
+        }
         button.addEventListener("click", () => {
           selectedHistoryCellId = button.dataset.cellId || "";
           document.getElementById("historyCellFilter").value = selectedHistoryCellId;
           refreshHistory();
+        });
+      });
+    }
+
+    function bindCellGroupSortHeaders(container) {
+      container.querySelectorAll(".cell-group-sort").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          setCellGroupSort(button.dataset.sortKey);
         });
       });
     }
@@ -1899,8 +2247,16 @@
         currentCellId = data.cell_id || null;
         currentCellTag = {
           cell_tag: data.cell_tag,
+          router_vendor: data.cell_tag_router_vendor,
           iso_region_code: data.iso_region_code,
           custom_label: data.custom_label,
+        };
+        currentCellProfileSource = {
+          enodeb_id: data.enodeb_id,
+          tac: data.tac,
+          plmn: data.plmn,
+          transmode: data.transmode,
+          cqi0: data.cqi0,
         };
         setText("cell_id", cellDisplayLabel(data));
 
@@ -1963,7 +2319,9 @@
       runSpeedTest();
     });
 
+    document.getElementById("themeToggle").addEventListener("click", toggleTheme);
     document.getElementById("editCellTag").addEventListener("click", openCellTagModal);
+    document.getElementById("addCellProfileField").addEventListener("click", addCustomFieldRow);
     document.getElementById("cellTagCancel").addEventListener("click", closeCellTagModal);
     document.getElementById("cellTagSave").addEventListener("click", saveCellTag);
     document.getElementById("cellTagModal").addEventListener("click", event => {
@@ -2079,6 +2437,7 @@
       canvas.addEventListener("mouseleave", hideChartTooltips);
     });
 
+    applyTheme(currentTheme);
     loadRouters().then(refreshData);
     refreshSpeedTest();
     setDefaultCustomRange();
