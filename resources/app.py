@@ -249,6 +249,7 @@ def apply_cell_tag(payload):
     cell_id = payload.get("cell_id")
     payload["cell_tag"] = None
     payload["cell_tag_router_vendor"] = None
+    payload["cell_profile"] = None
     payload["iso_region_code"] = None
     payload["custom_label"] = None
     payload["cell_label"] = str(cell_id) if cell_id else None
@@ -270,12 +271,21 @@ def apply_cell_tag(payload):
         tag = tags[0]
         payload["cell_tag"] = tag.get("cell_tag")
         payload["cell_tag_router_vendor"] = tag.get("router_vendor")
+        payload["cell_profile"] = {
+            "enodeb_id": tag.get("profile_enodeb_id"),
+            "tac": tag.get("profile_tac"),
+            "plmn": tag.get("profile_plmn"),
+            "transmode": tag.get("profile_transmode"),
+            "cqi0": tag.get("profile_cqi0"),
+            "custom_fields": tag.get("custom_fields") or {},
+        }
         payload["iso_region_code"] = tag.get("iso_region_code")
         payload["custom_label"] = tag.get("custom_label")
         payload["cell_label"] = tag.get("cell_tag")
     else:
         payload["cell_tag"] = None
         payload["cell_tag_router_vendor"] = None
+        payload["cell_profile"] = None
         payload["iso_region_code"] = None
         payload["custom_label"] = None
         payload["cell_label"] = str(cell_id)
@@ -527,8 +537,10 @@ def save_cell_tag():
     cell_id = str(payload.get("cell_id") or "").strip()
     iso_region_code = str(payload.get("iso_region_code") or "").strip()
     custom_label = str(payload.get("custom_label") or "").strip()
-    notes = str(payload.get("notes") or "").strip()
     router_vendor = str(payload.get("router_vendor") or "").strip().lower()
+    custom_fields = payload.get("custom_fields") or {}
+    if not isinstance(custom_fields, dict):
+        return jsonify({"error": True, "message": "custom_fields must be an object"}), 400
 
     if not cell_id:
         return jsonify({"error": True, "message": "cell_id is required"}), 400
@@ -543,8 +555,13 @@ def save_cell_tag():
             cell_id=cell_id,
             iso_region_code=iso_region_code,
             custom_label=custom_label or None,
-            notes=notes or None,
             router_vendor=router_vendor,
+            profile_enodeb_id=clean_value(payload.get("profile_enodeb_id")),
+            profile_tac=clean_value(payload.get("profile_tac")),
+            profile_plmn=clean_value(payload.get("profile_plmn")),
+            profile_transmode=clean_value(payload.get("profile_transmode")),
+            profile_cqi0=clean_value(payload.get("profile_cqi0")),
+            custom_fields=custom_fields,
         )
         items = fetch_cell_tags([cell_id]) if fetch_cell_tags else []
         return jsonify({"saved": True, "item": items[0] if items else None})

@@ -76,6 +76,17 @@
       resize: vertical;
     }
 
+    .custom-field-row {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      margin-top: 8px;
+    }
+
+    .custom-field-row input {
+      min-width: 0;
+    }
+
     button {
       border: 0;
       border-radius: 10px;
@@ -1005,8 +1016,29 @@
         <input id="cellTagCustomLabel" placeholder="Amwaj North Coast">
       </div>
       <div class="field">
-        <label for="cellTagNotes">Notes</label>
-        <textarea id="cellTagNotes" placeholder="Optional details"></textarea>
+        <label for="cellProfileEnodeb">eNodeB ID</label>
+        <input id="cellProfileEnodeb" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfileTac">TAC</label>
+        <input id="cellProfileTac" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfilePlmn">PLMN</label>
+        <input id="cellProfilePlmn" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfileTransmode">Transmission Mode</label>
+        <input id="cellProfileTransmode" readonly>
+      </div>
+      <div class="field">
+        <label for="cellProfileCqi">CQI</label>
+        <input id="cellProfileCqi" readonly>
+      </div>
+      <div class="field">
+        <label>Custom fields</label>
+        <div id="cellProfileCustomFields"></div>
+        <button id="addCellProfileField" type="button">Add field</button>
       </div>
       <div class="modal-actions">
         <button id="cellTagCancel">Cancel</button>
@@ -1035,6 +1067,7 @@
     let currentSpeedTestItems = [];
     let currentCellId = null;
     let currentCellTag = null;
+    let currentCellProfileSource = {};
     let currentCellGroups = [];
     let selectedHistoryCellId = "";
     let cellGroupSortKey = "last_seen";
@@ -1147,6 +1180,7 @@
 
       currentCellId = null;
       currentCellTag = null;
+      currentCellProfileSource = {};
       document.getElementById("raw").textContent = "";
     }
 
@@ -1190,6 +1224,54 @@
       return (payload.items || [])[0] || null;
     }
 
+    function setProfileField(id, value) {
+      document.getElementById(id).value =
+        value === null || value === undefined || value === "" ? "--" : value;
+    }
+
+    function readProfileField(id) {
+      const value = document.getElementById(id).value.trim();
+      return value === "--" ? "" : value;
+    }
+
+    function renderCustomFields(fields = {}) {
+      const container = document.getElementById("cellProfileCustomFields");
+      const entries = Object.entries(fields);
+      const rows = entries.length > 0 ? entries : [["", ""]];
+
+      container.innerHTML = rows.map(([key, value]) => `
+        <div class="custom-field-row">
+          <input class="custom-field-key" placeholder="Field" value="${escapeHtml(key)}">
+          <input class="custom-field-value" placeholder="Value" value="${escapeHtml(value)}">
+          <button class="custom-field-remove" type="button" title="Remove field">x</button>
+        </div>
+      `).join("");
+
+      container.querySelectorAll(".custom-field-remove").forEach(button => {
+        button.addEventListener("click", () => {
+          button.closest(".custom-field-row").remove();
+        });
+      });
+    }
+
+    function readCustomFields() {
+      const fields = {};
+      document.querySelectorAll("#cellProfileCustomFields .custom-field-row").forEach(row => {
+        const key = row.querySelector(".custom-field-key").value.trim();
+        const value = row.querySelector(".custom-field-value").value.trim();
+        if (key) {
+          fields[key] = value;
+        }
+      });
+      return fields;
+    }
+
+    function addCustomFieldRow() {
+      const fields = readCustomFields();
+      fields[""] = "";
+      renderCustomFields(fields);
+    }
+
     async function openCellTagModal() {
       if (!currentCellId) {
         showErrorPopup("Cell tag error", "No live Cell ID is available yet");
@@ -1207,7 +1289,12 @@
         document.getElementById("cellTagRouterType").value = selectedRouterVendor.toUpperCase();
         document.getElementById("cellTagRegion").value = tag?.iso_region_code || "EG-C";
         document.getElementById("cellTagCustomLabel").value = tag?.custom_label || "";
-        document.getElementById("cellTagNotes").value = tag?.notes || "";
+        setProfileField("cellProfileEnodeb", tag?.profile_enodeb_id || currentCellProfileSource.enodeb_id);
+        setProfileField("cellProfileTac", tag?.profile_tac || currentCellProfileSource.tac);
+        setProfileField("cellProfilePlmn", tag?.profile_plmn || currentCellProfileSource.plmn);
+        setProfileField("cellProfileTransmode", tag?.profile_transmode || currentCellProfileSource.transmode);
+        setProfileField("cellProfileCqi", tag?.profile_cqi0 || currentCellProfileSource.cqi0);
+        renderCustomFields(tag?.custom_fields || {});
         document.getElementById("cellTagModal").classList.add("visible");
       } catch (err) {
         showErrorPopup("Cell tag error", err.message || err);
@@ -1224,7 +1311,12 @@
         router_vendor: selectedRouterVendor,
         iso_region_code: document.getElementById("cellTagRegion").value,
         custom_label: document.getElementById("cellTagCustomLabel").value,
-        notes: document.getElementById("cellTagNotes").value,
+        profile_enodeb_id: readProfileField("cellProfileEnodeb"),
+        profile_tac: readProfileField("cellProfileTac"),
+        profile_plmn: readProfileField("cellProfilePlmn"),
+        profile_transmode: readProfileField("cellProfileTransmode"),
+        profile_cqi0: readProfileField("cellProfileCqi"),
+        custom_fields: readCustomFields(),
       };
 
       try {
@@ -2015,6 +2107,13 @@
           iso_region_code: data.iso_region_code,
           custom_label: data.custom_label,
         };
+        currentCellProfileSource = {
+          enodeb_id: data.enodeb_id,
+          tac: data.tac,
+          plmn: data.plmn,
+          transmode: data.transmode,
+          cqi0: data.cqi0,
+        };
         setText("cell_id", cellDisplayLabel(data));
 
         setText("rsrp", data.rsrp);
@@ -2077,6 +2176,7 @@
     });
 
     document.getElementById("editCellTag").addEventListener("click", openCellTagModal);
+    document.getElementById("addCellProfileField").addEventListener("click", addCustomFieldRow);
     document.getElementById("cellTagCancel").addEventListener("click", closeCellTagModal);
     document.getElementById("cellTagSave").addEventListener("click", saveCellTag);
     document.getElementById("cellTagModal").addEventListener("click", event => {
