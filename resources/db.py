@@ -21,7 +21,7 @@ def get_conn():
 
     for attempt in range(10):
         try:
-            return psycopg2.connect(
+            conn = psycopg2.connect(
                 host=os.getenv("DB_HOST", "timescaledb"),
                 port=int(os.getenv("DB_PORT", "5432")),
                 dbname=os.getenv("DB_NAME"),
@@ -29,6 +29,11 @@ def get_conn():
                 password=os.getenv("DB_PASSWORD"),
                 connect_timeout=5,
             )
+            timezone_name = os.getenv("TZ")
+            if timezone_name:
+                with conn.cursor() as cur:
+                    cur.execute("SET TIME ZONE %s;", (timezone_name,))
+            return conn
         except psycopg2.OperationalError as exc:
             last_error = exc
             print(f"[!] DB connection attempt {attempt + 1}/10 failed: {exc}")
