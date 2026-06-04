@@ -608,6 +608,111 @@
       font-size: 13px;
     }
 
+    body.light-theme {
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    body.light-theme .subtitle,
+    body.light-theme .label,
+    body.light-theme .toolbar-label,
+    body.light-theme .field label,
+    body.light-theme .history-range-status,
+    body.light-theme .history-table th,
+    body.light-theme .cell-group-header,
+    body.light-theme .cell-group-stat,
+    body.light-theme .history-chart-title,
+    body.light-theme .status,
+    body.light-theme .speedtest-note {
+      color: #4b5563;
+    }
+
+    body.light-theme .toolbar,
+    body.light-theme .history-panel,
+    body.light-theme .speedtest-panel,
+    body.light-theme .card,
+    body.light-theme .modal {
+      background: #ffffff;
+      color: #111827;
+    }
+
+    body.light-theme .dashboard-group {
+      background: rgba(229, 231, 235, 0.9);
+    }
+
+    body.light-theme .section-title,
+    body.light-theme .metric-subtitle,
+    body.light-theme .raw-box summary,
+    body.light-theme .history-table-details summary {
+      color: #111827;
+    }
+
+    body.light-theme .card:hover {
+      background: #f9fafb;
+    }
+
+    body.light-theme select,
+    body.light-theme .field input,
+    body.light-theme .field textarea {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+
+    body.light-theme button {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    body.light-theme button:hover {
+      background: #d1d5db;
+    }
+
+    body.light-theme button.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    body.light-theme .manual-refresh,
+    body.light-theme .speedtest-run {
+      background: #059669;
+      color: #ffffff;
+    }
+
+    body.light-theme .manual-refresh:hover,
+    body.light-theme .speedtest-run:hover {
+      background: #047857;
+    }
+
+    body.light-theme .tooltip,
+    body.light-theme .chart-tooltip {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+
+    body.light-theme .tooltip::after {
+      border-color: #ffffff transparent transparent transparent;
+    }
+
+    body.light-theme .raw-box,
+    body.light-theme .history-chart,
+    body.light-theme .history-table-details,
+    body.light-theme .cell-group-item {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+
+    body.light-theme .raw-box pre {
+      color: #374151;
+    }
+
+    body.light-theme .history-table th,
+    body.light-theme .history-table td {
+      border-bottom-color: #e5e7eb;
+    }
+
     @media (max-width: 1100px) {
       .grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -673,6 +778,7 @@
     <button class="interval-btn" data-interval="30000">30s</button>
     <button class="interval-btn" data-interval="60000">60s</button>
 
+    <button id="themeToggle">Light mode</button>
     <button class="manual-refresh" id="manualRefresh">Refresh now</button>
   </div>
 
@@ -1061,6 +1167,7 @@
     let customLanRange = null;
     let syncRangesEnabled = false;
     let selectedRouterVendor = "huawei";
+    let currentTheme = localStorage.getItem("dashboardTheme") || "dark";
     let refreshTimer = null;
     let isFetching = false;
     let currentHistoryItems = [];
@@ -1132,6 +1239,20 @@
     function setText(id, value) {
       document.getElementById(id).textContent =
         value === null || value === undefined || value === "" ? "--" : value;
+    }
+
+    function applyTheme(theme) {
+      currentTheme = theme === "light" ? "light" : "dark";
+      document.body.classList.toggle("light-theme", currentTheme === "light");
+      localStorage.setItem("dashboardTheme", currentTheme);
+      document.getElementById("themeToggle").textContent =
+        currentTheme === "light" ? "Dark mode" : "Light mode";
+    }
+
+    function toggleTheme() {
+      applyTheme(currentTheme === "light" ? "dark" : "light");
+      drawHistoryCharts(currentHistoryItems);
+      drawLanCharts(currentSpeedTestItems);
     }
 
     function escapeHtml(value) {
@@ -1641,8 +1762,31 @@
       button.textContent = syncRangesEnabled ? "Ranges synced" : "Sync ranges";
     }
 
+    function chartTheme() {
+      if (currentTheme === "light") {
+        return {
+          background: "#ffffff",
+          axis: "#9ca3af",
+          grid: "#e5e7eb",
+          label: "#4b5563",
+          marker: "#374151",
+          point: "#111827",
+        };
+      }
+
+      return {
+        background: "#030712",
+        axis: "#4b5563",
+        grid: "#374151",
+        label: "#9ca3af",
+        marker: "#d1d5db",
+        point: "#e5e7eb",
+      };
+    }
+
     function drawMetricChart(metric, items, hoverIndex = null) {
       const canvas = document.getElementById(metric.canvasId);
+      const theme = chartTheme();
       const rect = canvas.getBoundingClientRect();
       const scale = window.devicePixelRatio || 1;
       canvas.width = Math.max(1, Math.floor(rect.width * scale));
@@ -1651,7 +1795,7 @@
       const ctx = canvas.getContext("2d");
       ctx.scale(scale, scale);
       ctx.clearRect(0, 0, rect.width, rect.height);
-      ctx.fillStyle = "#030712";
+      ctx.fillStyle = theme.background;
       ctx.fillRect(0, 0, rect.width, rect.height);
 
       const points = items.map((item, index) => ({
@@ -1664,7 +1808,7 @@
         .filter(value => value !== null);
 
       if (points.length < 2 || values.length === 0) {
-        ctx.fillStyle = "#9ca3af";
+        ctx.fillStyle = theme.label;
         ctx.font = "14px Arial";
         ctx.fillText("Not enough historical data yet", 18, 34);
         return;
@@ -1681,7 +1825,7 @@
       const displayMax = maxValue + spread * 0.1;
       const displaySpread = Math.max(1, displayMax - displayMin);
 
-      ctx.strokeStyle = "#4b5563";
+      ctx.strokeStyle = theme.axis;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(padding.left, padding.top);
@@ -1689,8 +1833,8 @@
       ctx.lineTo(rect.width - padding.right, padding.top + chartHeight);
       ctx.stroke();
 
-      ctx.strokeStyle = "#374151";
-      ctx.fillStyle = "#9ca3af";
+      ctx.strokeStyle = theme.grid;
+      ctx.fillStyle = theme.label;
       ctx.font = "11px Arial";
       for (let i = 0; i <= 4; i++) {
         const y = padding.top + (chartHeight / 4) * i;
@@ -1723,7 +1867,7 @@
         labelIndexes.push(Math.round(((points.length - 1) * i) / (xTickCount - 1)));
       }
 
-      ctx.fillStyle = "#9ca3af";
+      ctx.fillStyle = theme.label;
       ctx.font = "11px Arial";
       Array.from(new Set(labelIndexes)).forEach((index, labelPosition, allLabels) => {
         const item = items[index];
@@ -1743,7 +1887,7 @@
             : x - width / 2;
         ctx.fillText(label, textX, rect.height - 10);
 
-        ctx.strokeStyle = "#4b5563";
+        ctx.strokeStyle = theme.axis;
         ctx.beginPath();
         ctx.moveTo(x, padding.top + chartHeight);
         ctx.lineTo(x, padding.top + chartHeight + 5);
@@ -1756,7 +1900,7 @@
       ].forEach(marker => {
         const y = yFor(marker.value);
         ctx.save();
-        ctx.strokeStyle = "#d1d5db";
+        ctx.strokeStyle = theme.marker;
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
@@ -1765,7 +1909,7 @@
         ctx.stroke();
         ctx.restore();
 
-        ctx.fillStyle = "#d1d5db";
+        ctx.fillStyle = theme.marker;
         ctx.font = "11px Arial";
         ctx.fillText(
           marker.label,
@@ -1810,7 +1954,7 @@
       if (avgPoint) {
         const x = xFor(avgPoint.index);
         const y = yFor(avgPoint.value);
-        ctx.fillStyle = "#e5e7eb";
+        ctx.fillStyle = theme.point;
         ctx.font = "11px Arial";
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, Math.PI * 2);
@@ -1827,7 +1971,7 @@
         const x = xFor(hoverPoint.index);
         const y = yFor(hoverPoint.value);
 
-        ctx.strokeStyle = "#9ca3af";
+        ctx.strokeStyle = theme.label;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x, padding.top);
@@ -2175,6 +2319,7 @@
       runSpeedTest();
     });
 
+    document.getElementById("themeToggle").addEventListener("click", toggleTheme);
     document.getElementById("editCellTag").addEventListener("click", openCellTagModal);
     document.getElementById("addCellProfileField").addEventListener("click", addCustomFieldRow);
     document.getElementById("cellTagCancel").addEventListener("click", closeCellTagModal);
@@ -2292,6 +2437,7 @@
       canvas.addEventListener("mouseleave", hideChartTooltips);
     });
 
+    applyTheme(currentTheme);
     loadRouters().then(refreshData);
     refreshSpeedTest();
     setDefaultCustomRange();
