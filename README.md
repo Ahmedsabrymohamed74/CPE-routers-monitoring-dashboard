@@ -1,6 +1,9 @@
 # CPE Router Dashboard
 
-Flask dashboard for Huawei and ZTE router cellular metrics.
+Flask-based dashboard for Huawei and ZTE router cellular metrics.
+Implemented adapters for models:
+Huwaei:  TBC
+ZTE: MF296C
 
 Features:
 
