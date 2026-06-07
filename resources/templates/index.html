@@ -11,27 +11,67 @@
       background: #111827;
       color: #f9fafb;
       margin: 0;
-      padding: 24px;
+      padding: 112px 24px 24px;
     }
 
-    h1 {
-      margin-bottom: 6px;
+    .topbar {
+      align-items: center;
+      background: #1f2937;
+      border-bottom: 1px solid #374151;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.24);
+      display: grid;
+      gap: 16px;
+      grid-template-columns: minmax(120px, 1fr) auto minmax(360px, 1fr);
+      left: 0;
+      min-height: 72px;
+      padding: 12px 24px;
+      position: fixed;
+      right: 0;
+      top: 0;
+      z-index: 80;
     }
 
-    .subtitle {
-      color: #9ca3af;
-      margin-bottom: 24px;
+    .brand-logo {
+      align-items: center;
+      display: flex;
+      gap: 10px;
+      font-weight: bold;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      align-items: center;
+      background: #2563eb;
+      border-radius: 8px;
+      color: #ffffff;
+      display: inline-flex;
+      font-size: 13px;
+      height: 36px;
+      justify-content: center;
+      letter-spacing: 0;
+      width: 42px;
+    }
+
+    .brand-name {
+      color: #d1d5db;
+      font-size: 14px;
+    }
+
+    .app-title {
+      color: #f9fafb;
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+      white-space: nowrap;
     }
 
     .toolbar {
       align-items: center;
-      background: #1f2937;
-      border-radius: 14px;
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(3, minmax(0, auto)) 1fr auto auto;
-      margin-bottom: 24px;
-      padding: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+      min-width: 0;
     }
 
     .toolbar-field {
@@ -45,6 +85,16 @@
       display: flex;
       gap: 10px;
       justify-content: flex-end;
+    }
+
+    .theme-toggle {
+      align-items: center;
+      display: inline-flex;
+      font-size: 18px;
+      height: 36px;
+      justify-content: center;
+      padding: 0;
+      width: 38px;
     }
 
     .toolbar-label {
@@ -663,7 +713,6 @@
       color: #111827;
     }
 
-    body.light-theme .subtitle,
     body.light-theme .label,
     body.light-theme .toolbar-label,
     body.light-theme .field label,
@@ -677,7 +726,7 @@
       color: #4b5563;
     }
 
-    body.light-theme .toolbar,
+    body.light-theme .topbar,
     body.light-theme .history-panel,
     body.light-theme .speedtest-panel,
     body.light-theme .card,
@@ -688,6 +737,19 @@
 
     body.light-theme .dashboard-group {
       background: rgba(229, 231, 235, 0.9);
+    }
+
+    body.light-theme .topbar {
+      border-bottom-color: #d1d5db;
+      box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
+    }
+
+    body.light-theme .app-title {
+      color: #111827;
+    }
+
+    body.light-theme .brand-name {
+      color: #4b5563;
     }
 
     body.light-theme .section-title,
@@ -777,7 +839,23 @@
 
     @media (max-width: 500px) {
       body {
-        padding: 14px;
+        padding: 190px 14px 14px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+        padding: 10px 14px;
+      }
+
+      .brand-logo,
+      .app-title,
+      .toolbar {
+        justify-content: center;
+      }
+
+      .app-title {
+        font-size: 18px;
       }
 
       .grid {
@@ -785,7 +863,12 @@
       }
 
       .toolbar {
-        grid-template-columns: 1fr;
+        justify-content: stretch;
+      }
+
+      .toolbar-field {
+        justify-content: space-between;
+        width: 100%;
       }
 
       .toolbar-actions {
@@ -818,36 +901,40 @@
 </head>
 
 <body>
-  <h1>CPE Router Dashboard</h1>
-  <div class="subtitle">Live cellular signal information</div>
-
-  <div class="toolbar">
-    <div class="toolbar-field">
-      <span class="toolbar-label">Current Router:</span>
-      <select id="routerVendor">
-        <option value="huawei">Huawei</option>
-        <option value="zte">ZTE</option>
-      </select>
+  <header class="topbar">
+    <div class="brand-logo" aria-label="CPE router dashboard">
+      <span class="brand-mark">CPE</span>
+      <span class="brand-name">Router Monitor</span>
     </div>
 
-    <div class="toolbar-field">
-      <span class="toolbar-label">Refresh interval:</span>
-      <select id="refreshInterval">
-        <option value="5000">5s</option>
-        <option value="10000">10s</option>
-        <option value="15000" selected>15s</option>
-        <option value="30000">30s</option>
-        <option value="60000">60s</option>
-      </select>
-    </div>
+    <div class="app-title">CPE Router Dashboard</div>
 
-    <div></div>
+    <div class="toolbar">
+      <div class="toolbar-field">
+        <span class="toolbar-label">Router:</span>
+        <select id="routerVendor">
+          <option value="huawei">Huawei</option>
+          <option value="zte">ZTE</option>
+        </select>
+      </div>
 
-    <div class="toolbar-actions">
-      <button id="themeToggle">Light mode</button>
-      <button class="manual-refresh" id="manualRefresh">Refresh now</button>
+      <div class="toolbar-field">
+        <span class="toolbar-label">Interval:</span>
+        <select id="refreshInterval">
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="15000" selected>15s</option>
+          <option value="30000">30s</option>
+          <option value="60000">60s</option>
+        </select>
+      </div>
+
+      <div class="toolbar-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">&#9680;</button>
+        <button class="manual-refresh" id="manualRefresh">Refresh now</button>
+      </div>
     </div>
-  </div>
+  </header>
 
   <details class="dashboard-group" open>
     <summary class="section-title">General Info</summary>
@@ -1322,8 +1409,10 @@
       currentTheme = theme === "light" ? "light" : "dark";
       document.body.classList.toggle("light-theme", currentTheme === "light");
       localStorage.setItem("dashboardTheme", currentTheme);
-      document.getElementById("themeToggle").textContent =
-        currentTheme === "light" ? "Dark mode" : "Light mode";
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle.innerHTML = currentTheme === "light" ? "&#9728;" : "&#9680;";
+      themeToggle.title = currentTheme === "light" ? "Switch to dark mode" : "Switch to light mode";
+      themeToggle.setAttribute("aria-label", themeToggle.title);
     }
 
     function toggleTheme() {
