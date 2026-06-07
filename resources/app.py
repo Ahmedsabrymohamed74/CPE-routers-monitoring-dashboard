@@ -231,6 +231,15 @@ def get_router(vendor=None):
     return normalized_vendor, router_client
 
 
+def history_poll_vendors():
+    vendors = []
+    if HUAWEI_ROUTER_PASSWORD:
+        vendors.append("huawei")
+    if ZTE_ROUTER_PASSWORD or ZTE_SESSION_COOKIE:
+        vendors.append("zte")
+    return vendors or [configured_router_vendor()]
+
+
 def build_cellular_payload(vendor=None):
     """
     Fetch live signal data from the router and normalize it into the dashboard/API format.
@@ -389,12 +398,17 @@ def historical_poller():
                 db_ready = db_initialized
                 print("[*] Historical database initialized", flush=True)
 
-            data = build_cellular_payload()
-
             if insert_metric:
-                insert_metric(data)
-                print("[*] Historical metric inserted", flush=True)
-                if prune_metrics and HISTORICAL_RETENTION_DAYS > 0:
+                inserted = 0
+                for vendor in history_poll_vendors():
+                    try:
+                        data = build_cellular_payload(vendor)
+                        insert_metric(data)
+                        inserted += 1
+                        print(f"[*] Historical metric inserted vendor={vendor}", flush=True)
+                    except Exception as exc:
+                        print(f"[!] Historical metric skipped vendor={vendor}: {exc}", flush=True)
+                if inserted and prune_metrics and HISTORICAL_RETENTION_DAYS > 0:
                     prune_metrics(HISTORICAL_RETENTION_DAYS)
             else:
                 print("[!] insert_metric unavailable; historical insert skipped", flush=True)
@@ -584,6 +598,9 @@ def history():
         start = request.args.get("start")
         end = request.args.get("end")
         cell_id = request.args.get("cell_id")
+        vendor = (request.args.get("vendor") or configured_router_vendor()).strip().lower()
+        if vendor not in routers:
+            return jsonify({"error": True, "message": f"Unsupported router vendor: {vendor}"}), 400
         ensure_db_initialized()
         return jsonify({
             "minutes": int(minutes),
@@ -591,17 +608,20 @@ def history():
             "start": start,
             "end": end,
             "cell_id": cell_id,
+            "router_vendor": vendor,
             "items": fetch_history(
                 minutes=minutes,
                 limit=limit,
                 start=start,
                 end=end,
                 cell_id=cell_id,
+                router_vendor=vendor,
             ),
             "cell_groups": fetch_history_cell_groups(
                 minutes=minutes,
                 start=start,
                 end=end,
+                router_vendor=vendor,
             ) if fetch_history_cell_groups else [],
         })
     except Exception as exc:

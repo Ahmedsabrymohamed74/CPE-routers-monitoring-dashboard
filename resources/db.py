@@ -63,6 +63,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS cellular_metrics (
         time TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+        router_vendor TEXT,
+        router_name TEXT,
+
         network_type TEXT,
         operator TEXT,
 
@@ -126,6 +129,10 @@ def init_db():
         ADD COLUMN IF NOT EXISTS notes TEXT,
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
+    ALTER TABLE cellular_metrics
+        ADD COLUMN IF NOT EXISTS router_vendor TEXT,
+        ADD COLUMN IF NOT EXISTS router_name TEXT;
+
     DO $$
     BEGIN
         IF EXISTS (
@@ -164,6 +171,7 @@ def insert_metric(data):
 
     sql = """
     INSERT INTO cellular_metrics (
+        router_vendor, router_name,
         network_type, operator,
         pci, cell_id, enodeb_id,
         rsrp, rsrq, sinr, rssi,
@@ -172,6 +180,7 @@ def insert_metric(data):
         raw
     )
     VALUES (
+        %(router_vendor)s, %(router_name)s,
         %(network_type)s, %(operator)s,
         %(pci)s, %(cell_id)s, %(enodeb_id)s,
         %(rsrp)s, %(rsrq)s, %(sinr)s, %(rssi)s,
@@ -182,6 +191,8 @@ def insert_metric(data):
     """
 
     row = {
+        "router_vendor": data.get("router_vendor"),
+        "router_name": data.get("router_name"),
         "network_type": data.get("network_type"),
         "operator": data.get("operator"),
 
@@ -496,7 +507,7 @@ def fetch_cell_tags(cell_ids=None):
     return result
 
 
-def fetch_history_cell_groups(minutes=1440, start=None, end=None):
+def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=None):
     if not db_config_available():
         return []
 
@@ -514,10 +525,14 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
         where_clause = "cm.time <= %s::timestamptz"
         params = [end]
 
+    if router_vendor:
+        where_clause = f"{where_clause} AND cm.router_vendor = %s"
+        params.append(str(router_vendor).strip().lower())
+
     sql = f"""
     SELECT
         cm.cell_id,
-        cit.router_vendor,
+        cit.router_vendor AS tag_router_vendor,
         cit.iso_region_code,
         cit.custom_label,
         cit.notes,
@@ -544,7 +559,7 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
 
     keys = [
         "cell_id",
-        "router_vendor",
+        "tag_router_vendor",
         "iso_region_code",
         "custom_label",
         "notes",
@@ -572,7 +587,7 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
     return result
 
 
-def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
+def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, router_vendor=None):
     if not db_config_available():
         return []
 
@@ -592,6 +607,10 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
         where_clause = "cm.time <= %s::timestamptz"
         params = [end]
 
+    if router_vendor:
+        where_clause = f"{where_clause} AND cm.router_vendor = %s"
+        params.append(str(router_vendor).strip().lower())
+
     if cell_id:
         where_clause = f"{where_clause} AND cm.cell_id = %s"
         params.append(str(cell_id))
@@ -599,11 +618,13 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
     sql = f"""
     SELECT
         cm.time,
+        cm.router_vendor,
+        cm.router_name,
         cm.network_type,
         cm.operator,
         cm.pci,
         cm.cell_id,
-        cit.router_vendor,
+        cit.router_vendor AS tag_router_vendor,
         cit.iso_region_code,
         cit.custom_label,
         cit.notes,
@@ -639,11 +660,13 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
 
     keys = [
         "time",
+        "router_vendor",
+        "router_name",
         "network_type",
         "operator",
         "pci",
         "cell_id",
-        "router_vendor",
+        "tag_router_vendor",
         "iso_region_code",
         "custom_label",
         "notes",

@@ -2185,7 +2185,10 @@
 
     async function refreshHistory() {
       try {
-        const params = new URLSearchParams({ limit: "500" });
+        const params = new URLSearchParams({
+          limit: "500",
+          vendor: selectedRouterVendor,
+        });
         if (customHistoryRange) {
           params.set("start", customHistoryRange.start);
           params.set("end", customHistoryRange.end);
@@ -2312,7 +2315,9 @@
 
     document.getElementById("routerVendor").addEventListener("change", event => {
       selectedRouterVendor = event.target.value;
+      selectedHistoryCellId = "";
       refreshData();
+      refreshHistory();
     });
 
     document.getElementById("runSpeedTest").addEventListener("click", () => {
