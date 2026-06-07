@@ -430,7 +430,7 @@ def upsert_cell_tag(
         notes,
         updated_at
     )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
     ON CONFLICT (cell_id, pci)
     DO UPDATE SET
         router_vendor = EXCLUDED.router_vendor,
