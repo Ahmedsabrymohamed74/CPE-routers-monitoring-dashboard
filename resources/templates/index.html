@@ -24,14 +24,27 @@
     }
 
     .toolbar {
-      display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 24px;
       background: #1f2937;
-      padding: 14px;
       border-radius: 14px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(3, minmax(0, auto)) 1fr auto auto;
+      margin-bottom: 24px;
+      padding: 14px;
+    }
+
+    .toolbar-field {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
     }
 
     .toolbar-label {
@@ -106,7 +119,6 @@
     }
 
     .manual-refresh {
-      margin-left: auto;
       background: #059669;
     }
 
@@ -772,8 +784,16 @@
         grid-template-columns: 1fr;
       }
 
-      .manual-refresh {
-        margin-left: 0;
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar-actions {
+        justify-content: stretch;
+      }
+
+      .toolbar-actions button {
+        flex: 1;
       }
 
       .value {
@@ -802,22 +822,31 @@
   <div class="subtitle">Live cellular signal information</div>
 
   <div class="toolbar">
-    <span class="toolbar-label">Current Router:</span>
-    <select id="routerVendor">
-      <option value="huawei">Huawei</option>
-      <option value="zte">ZTE</option>
-    </select>
+    <div class="toolbar-field">
+      <span class="toolbar-label">Current Router:</span>
+      <select id="routerVendor">
+        <option value="huawei">Huawei</option>
+        <option value="zte">ZTE</option>
+      </select>
+    </div>
 
-    <span class="toolbar-label">Refresh interval:</span>
+    <div class="toolbar-field">
+      <span class="toolbar-label">Refresh interval:</span>
+      <select id="refreshInterval">
+        <option value="5000">5s</option>
+        <option value="10000">10s</option>
+        <option value="15000" selected>15s</option>
+        <option value="30000">30s</option>
+        <option value="60000">60s</option>
+      </select>
+    </div>
 
-    <button class="interval-btn" data-interval="5000">5s</button>
-    <button class="interval-btn" data-interval="10000">10s</button>
-    <button class="interval-btn active" data-interval="15000">15s</button>
-    <button class="interval-btn" data-interval="30000">30s</button>
-    <button class="interval-btn" data-interval="60000">60s</button>
+    <div></div>
 
-    <button id="themeToggle">Light mode</button>
-    <button class="manual-refresh" id="manualRefresh">Refresh now</button>
+    <div class="toolbar-actions">
+      <button id="themeToggle">Light mode</button>
+      <button class="manual-refresh" id="manualRefresh">Refresh now</button>
+    </div>
   </div>
 
   <details class="dashboard-group" open>
@@ -2328,11 +2357,8 @@
       }
     }
 
-    function setActiveIntervalButton(intervalMs) {
-      document.querySelectorAll(".interval-btn").forEach(button => {
-        const buttonInterval = Number(button.dataset.interval);
-        button.classList.toggle("active", buttonInterval === intervalMs);
-      });
+    function setActiveIntervalControl(intervalMs) {
+      document.getElementById("refreshInterval").value = String(intervalMs);
     }
 
     async function refreshData() {
@@ -2409,12 +2435,10 @@
 
     document.getElementById("errorToastClose").addEventListener("click", hideErrorPopup);
 
-    document.querySelectorAll(".interval-btn").forEach(button => {
-      button.addEventListener("click", () => {
-        refreshIntervalMs = Number(button.dataset.interval);
-        setActiveIntervalButton(refreshIntervalMs);
-        startRefreshTimer();
-      });
+    document.getElementById("refreshInterval").addEventListener("change", event => {
+      refreshIntervalMs = Number(event.target.value);
+      setActiveIntervalControl(refreshIntervalMs);
+      startRefreshTimer();
     });
 
     document.getElementById("manualRefresh").addEventListener("click", () => {
@@ -2554,6 +2578,7 @@
     });
 
     applyTheme(currentTheme);
+    setActiveIntervalControl(refreshIntervalMs);
     loadRouters().then(refreshData);
     refreshSpeedTest();
     setDefaultCustomRange();
