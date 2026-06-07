@@ -256,6 +256,7 @@ def build_cellular_payload(vendor=None):
 
 def apply_cell_tag(payload):
     cell_id = payload.get("cell_id")
+    pci = payload.get("pci")
     payload["cell_tag"] = None
     payload["cell_tag_router_vendor"] = None
     payload["cell_profile"] = None
@@ -271,7 +272,7 @@ def apply_cell_tag(payload):
 
     try:
         ensure_db_initialized()
-        tags = fetch_cell_tags([cell_id])
+        tags = fetch_cell_tags([cell_id], pci=pci)
     except Exception as exc:
         print(f"[!] Cell tag lookup error for cell_id={cell_id!r}: {exc}", flush=True)
         return payload
@@ -532,8 +533,9 @@ def cell_tags():
     try:
         ensure_db_initialized()
         cell_id = request.args.get("cell_id")
+        pci = request.args.get("pci")
         cell_ids = [cell_id] if cell_id else None
-        return jsonify({"items": fetch_cell_tags(cell_ids)})
+        return jsonify({"items": fetch_cell_tags(cell_ids, pci=pci)})
     except Exception as exc:
         print(f"[!] Cell tag fetch error: {exc}", flush=True)
         return jsonify({
@@ -549,6 +551,7 @@ def save_cell_tag():
 
     payload = request.get_json(silent=True) or {}
     cell_id = str(payload.get("cell_id") or "").strip()
+    pci = str(payload.get("pci") or "").strip()
     iso_region_code = str(payload.get("iso_region_code") or "").strip()
     custom_label = str(payload.get("custom_label") or "").strip()
     router_vendor = str(payload.get("router_vendor") or "").strip().lower()
@@ -567,6 +570,7 @@ def save_cell_tag():
         ensure_db_initialized()
         upsert_cell_tag(
             cell_id=cell_id,
+            pci=pci,
             iso_region_code=iso_region_code,
             custom_label=custom_label or None,
             router_vendor=router_vendor,
@@ -577,7 +581,7 @@ def save_cell_tag():
             profile_cqi0=clean_value(payload.get("profile_cqi0")),
             custom_fields=custom_fields,
         )
-        items = fetch_cell_tags([cell_id]) if fetch_cell_tags else []
+        items = fetch_cell_tags([cell_id], pci=pci) if fetch_cell_tags else []
         return jsonify({"saved": True, "item": items[0] if items else None})
     except Exception as exc:
         print(f"[!] Cell tag save error: {exc}", flush=True)
