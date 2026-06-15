@@ -630,23 +630,23 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=
     return result
 
 
-def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, router_vendor=None):
+def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, router_vendor=None, latest=False):
     if not db_config_available():
         return []
 
     minutes = max(1, int(minutes))
     limit = min(max(1, int(limit)), 2000)
 
-    where_clause = "cm.time >= now() - (%s || ' minutes')::interval"
-    params = [minutes]
+    where_clause = "TRUE" if latest else "cm.time >= now() - (%s || ' minutes')::interval"
+    params = [] if latest else [minutes]
 
-    if start and end:
+    if not latest and start and end:
         where_clause = "cm.time >= %s::timestamptz AND cm.time <= %s::timestamptz"
         params = [start, end]
-    elif start:
+    elif not latest and start:
         where_clause = "cm.time >= %s::timestamptz"
         params = [start]
-    elif end:
+    elif not latest and end:
         where_clause = "cm.time <= %s::timestamptz"
         params = [end]
 
@@ -687,7 +687,7 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, r
     FROM cellular_metrics cm
     LEFT JOIN cell_id_tags cit ON cit.cell_id = cm.cell_id AND cit.pci = COALESCE(cm.pci, '')
     WHERE {where_clause}
-    ORDER BY cm.time ASC;
+    ORDER BY cm.time DESC;
     """
 
     with get_conn() as conn:
@@ -696,10 +696,12 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, r
             rows = cur.fetchall()
 
     if len(rows) > limit and limit == 1:
-        rows = [rows[-1]]
+        rows = [rows[0]]
     elif len(rows) > limit:
         step = (len(rows) - 1) / (limit - 1)
         rows = [rows[round(index * step)] for index in range(limit)]
+
+    rows = list(reversed(rows))
 
     keys = [
         "time",

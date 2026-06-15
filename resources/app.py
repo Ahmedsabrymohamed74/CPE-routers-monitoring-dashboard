@@ -605,6 +605,7 @@ def history():
         start = request.args.get("start")
         end = request.args.get("end")
         cell_id = request.args.get("cell_id")
+        latest = str(request.args.get("latest") or "").strip().lower() in {"1", "true", "yes", "on"}
         vendor = (request.args.get("vendor") or configured_router_vendor()).strip().lower()
         if vendor not in routers:
             return jsonify({"error": True, "message": f"Unsupported router vendor: {vendor}"}), 400
@@ -623,6 +624,7 @@ def history():
                 end=end,
                 cell_id=cell_id,
                 router_vendor=vendor,
+                latest=latest,
             ),
             "cell_groups": fetch_history_cell_groups(
                 minutes=minutes,

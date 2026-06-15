@@ -1142,13 +1142,18 @@
         <summary class="metric-subtitle">Cellular Metrics</summary>
         <div class="history-toolbar">
           <span class="toolbar-label">Range:</span>
-          <button class="history-range-btn" data-minutes="15">15m</button>
-          <button class="history-range-btn" data-minutes="30">30m</button>
-          <button class="history-range-btn active" data-minutes="60">1h</button>
-          <button class="history-range-btn" data-minutes="360">6h</button>
-          <button class="history-range-btn" data-minutes="1440">24h</button>
-          <button class="history-range-btn" data-minutes="4320">3d</button>
-          <button class="history-range-btn" data-minutes="10080">7d</button>
+          <select id="historyRangeSelect">
+            <option value="now">Now</option>
+            <option value="5">5m</option>
+            <option value="10">10m</option>
+            <option value="15">15m</option>
+            <option value="30">30m</option>
+            <option value="60" selected>1h</option>
+            <option value="360">6h</option>
+            <option value="1440">24h</option>
+            <option value="4320">3d</option>
+            <option value="10080">7d</option>
+          </select>
           <span class="toolbar-label">Choose tower / Cell ID:</span>
           <select id="historyCellFilter">
             <option value="">All cells</option>
@@ -1348,6 +1353,7 @@
     const HUAWEI_FIXED_INTERVAL_MS = 3000;
     let configuredLiveFetchIntervalMs = 15000;
     let refreshIntervalMs = configuredLiveFetchIntervalMs;
+    let historyRangeMode = "range";
     let historyRangeMinutes = 60;
     let customHistoryRange = null;
     let lanRangeMinutes = 1440;
@@ -1906,7 +1912,7 @@
 
     function formatTimeLabel(timeValue) {
       const date = new Date(timeValue);
-      if (customHistoryRange || historyRangeMinutes <= 1440) {
+      if (historyRangeMode === "now" || customHistoryRange || historyRangeMinutes <= 1440) {
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       }
       return date.toLocaleDateString([], { month: "short", day: "numeric" });
@@ -1930,6 +1936,14 @@
           selectedHistoryCellId
             ? `${start} to ${end} · filtered by Cell ${selectedHistoryCellId}`
             : `${start} to ${end}`;
+        return;
+      }
+
+      if (historyRangeMode === "now") {
+        document.getElementById("historyRangeStatus").textContent =
+          selectedHistoryCellId
+            ? `Showing latest sample · filtered by Cell ${selectedHistoryCellId}`
+            : "Showing latest sample";
         return;
       }
 
@@ -2452,7 +2466,10 @@
           limit: "500",
           vendor: selectedRouterVendor,
         });
-        if (customHistoryRange) {
+        if (historyRangeMode === "now") {
+          params.set("latest", "true");
+          params.set("limit", "1");
+        } else if (customHistoryRange) {
           params.set("start", customHistoryRange.start);
           params.set("end", customHistoryRange.end);
         } else {
@@ -2637,27 +2654,26 @@
       refreshHistory();
     });
 
-    document.querySelectorAll(".history-range-btn").forEach(button => {
-      button.addEventListener("click", () => {
-        historyRangeMinutes = Number(button.dataset.minutes);
-        customHistoryRange = null;
-        document.querySelectorAll(".history-range-btn").forEach(item => {
-          item.classList.toggle("active", item === button);
-        });
-        updateHistoryRangeStatus();
-        refreshHistory();
-        if (syncRangesEnabled) {
-          syncLanRangeToCellular();
-        }
-      });
+    document.getElementById("historyRangeSelect").addEventListener("change", event => {
+      if (event.target.value === "now") {
+        historyRangeMode = "now";
+      } else {
+        historyRangeMode = "range";
+        historyRangeMinutes = Number(event.target.value);
+      }
+      customHistoryRange = null;
+      updateHistoryRangeStatus();
+      refreshHistory();
+      if (syncRangesEnabled) {
+        syncLanRangeToCellular();
+      }
     });
 
     document.getElementById("historyApplyCustom").addEventListener("click", () => {
       try {
+        historyRangeMode = "custom";
         customHistoryRange = customRangeFromInputs("historyStart", "historyEnd");
-        document.querySelectorAll(".history-range-btn").forEach(item => {
-          item.classList.remove("active");
-        });
+        document.getElementById("historyRangeSelect").value = "60";
         updateHistoryRangeStatus();
         refreshHistory();
         if (syncRangesEnabled) {
