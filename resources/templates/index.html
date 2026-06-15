@@ -97,6 +97,26 @@
       width: 38px;
     }
 
+    .locked-interval {
+      background: #111827;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      color: #d1d5db;
+      cursor: help;
+      display: none;
+      font-size: 14px;
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+
+    .toolbar-field.locked #refreshInterval {
+      display: none;
+    }
+
+    .toolbar-field.locked .locked-interval {
+      display: inline-block;
+    }
+
     .toolbar-label {
       color: #d1d5db;
       margin-right: 6px;
@@ -796,6 +816,12 @@
       background: #047857;
     }
 
+    body.light-theme .locked-interval {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #4b5563;
+    }
+
     body.light-theme .tooltip,
     body.light-theme .chart-tooltip {
       background: #ffffff;
@@ -918,7 +944,7 @@
         </select>
       </div>
 
-      <div class="toolbar-field">
+      <div class="toolbar-field" id="intervalControl">
         <span class="toolbar-label">Interval:</span>
         <select id="refreshInterval">
           <option value="5000">5s</option>
@@ -927,6 +953,11 @@
           <option value="30000">30s</option>
           <option value="60000">60s</option>
         </select>
+        <span
+          class="locked-interval"
+          id="lockedHuaweiInterval"
+          title="Huawei signal data is available about every 3 seconds, so the live fetch interval is locked to avoid skipping samples."
+        >3s</span>
       </div>
 
       <div class="toolbar-actions">
@@ -1314,7 +1345,9 @@
   </div>
 
   <script>
-    let refreshIntervalMs = 15000;
+    const HUAWEI_FIXED_INTERVAL_MS = 3000;
+    let configuredLiveFetchIntervalMs = 15000;
+    let refreshIntervalMs = configuredLiveFetchIntervalMs;
     let historyRangeMinutes = 60;
     let customHistoryRange = null;
     let lanRangeMinutes = 1440;
@@ -1481,8 +1514,7 @@
         const select = document.getElementById("routerVendor");
         selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
         if (payload.live_fetch_interval_seconds) {
-          refreshIntervalMs = Number(payload.live_fetch_interval_seconds) * 1000;
-          setActiveIntervalControl(refreshIntervalMs);
+          configuredLiveFetchIntervalMs = Number(payload.live_fetch_interval_seconds) * 1000;
         }
         select.innerHTML = (payload.routers || []).map(router => `
           <option
@@ -1493,6 +1525,7 @@
           </option>
         `).join("");
         select.disabled = false;
+        applyVendorIntervalPolicy();
       } catch (err) {
         showErrorPopup("Router list error", err.message || err);
       }
@@ -1836,8 +1869,9 @@
     }
 
     function updateIntervalStatus() {
+      const suffix = selectedRouterVendor === "huawei" ? " (locked for Huawei)" : "";
       document.getElementById("interval_status").textContent =
-        "Refresh interval: " + (refreshIntervalMs / 1000) + " seconds";
+        "Refresh interval: " + (refreshIntervalMs / 1000) + " seconds" + suffix;
     }
 
     function startRefreshTimer() {
@@ -2467,6 +2501,24 @@
       select.value = value;
     }
 
+    function applyVendorIntervalPolicy() {
+      const intervalControl = document.getElementById("intervalControl");
+      const refreshSelect = document.getElementById("refreshInterval");
+
+      if (selectedRouterVendor === "huawei") {
+        refreshIntervalMs = HUAWEI_FIXED_INTERVAL_MS;
+        intervalControl.classList.add("locked");
+        refreshSelect.disabled = true;
+      } else {
+        refreshIntervalMs = configuredLiveFetchIntervalMs;
+        intervalControl.classList.remove("locked");
+        refreshSelect.disabled = false;
+        setActiveIntervalControl(refreshIntervalMs);
+      }
+
+      updateIntervalStatus();
+    }
+
     async function refreshData() {
       if (isFetching) {
         return;
@@ -2542,7 +2594,8 @@
     document.getElementById("errorToastClose").addEventListener("click", hideErrorPopup);
 
     document.getElementById("refreshInterval").addEventListener("change", event => {
-      refreshIntervalMs = Number(event.target.value);
+      configuredLiveFetchIntervalMs = Number(event.target.value);
+      refreshIntervalMs = configuredLiveFetchIntervalMs;
       setActiveIntervalControl(refreshIntervalMs);
       startRefreshTimer();
     });
@@ -2554,6 +2607,8 @@
     document.getElementById("routerVendor").addEventListener("change", event => {
       selectedRouterVendor = event.target.value;
       selectedHistoryCellId = "";
+      applyVendorIntervalPolicy();
+      startRefreshTimer();
       refreshData();
       refreshHistory();
     });
@@ -2684,7 +2739,8 @@
     });
 
     applyTheme(currentTheme);
-    setActiveIntervalControl(refreshIntervalMs);
+    setActiveIntervalControl(configuredLiveFetchIntervalMs);
+    applyVendorIntervalPolicy();
     loadRouters()
       .catch(() => null)
       .then(() => {
