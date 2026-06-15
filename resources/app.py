@@ -91,6 +91,7 @@ POLL_INTERVAL_SECONDS = max(
 )
 ENABLE_HISTORICAL = env_bool("HISTORICAL_ENABLED", True, aliases=("ENABLE_HISTORICAL",))
 HISTORICAL_RETENTION_DAYS = env_int("HISTORICAL_RETENTION_DAYS", 7)
+LIVE_FETCH_INTERVAL_SECONDS = max(1, env_int("LIVE_FETCH_INTERVAL_SECONDS", 15))
 
 SPEEDTEST_ENABLED = env_bool("SPEEDTEST_ENABLED", True)
 SPEEDTEST_SCHEDULE_ENABLED = env_bool("SPEEDTEST_SCHEDULE_ENABLED", False)
@@ -470,6 +471,7 @@ def health():
         "historical_enabled": ENABLE_HISTORICAL,
         "historical_poll_interval_seconds": POLL_INTERVAL_SECONDS,
         "historical_retention_days": HISTORICAL_RETENTION_DAYS,
+        "live_fetch_interval_seconds": LIVE_FETCH_INTERVAL_SECONDS,
         "db_config_available": db_config_available(),
         "speedtest_enabled": SPEEDTEST_ENABLED,
         "speedtest_schedule_enabled": SPEEDTEST_SCHEDULE_ENABLED,
@@ -483,6 +485,7 @@ def router_list():
     return jsonify({
         "default_vendor": configured_router_vendor(),
         "switch_enabled": True,
+        "live_fetch_interval_seconds": LIVE_FETCH_INTERVAL_SECONDS,
         "routers": [
             {
                 "vendor": "huawei",

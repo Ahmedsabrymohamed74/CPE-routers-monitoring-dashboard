@@ -10,6 +10,7 @@ data:
   TZ: "Africa/Cairo"
 
   # Dashboard display
+  LIVE_FETCH_INTERVAL_SECONDS: "15"
   NETWORK_TYPE: "LTE / 4G"
   OPERATOR_NAME: "Vodafone Egypt"
   DASHBOARD_NETWORK_TYPE: "LTE / 4G"

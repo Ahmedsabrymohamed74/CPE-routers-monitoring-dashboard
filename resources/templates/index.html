@@ -1480,6 +1480,10 @@
         const payload = await responseJsonOrError(res);
         const select = document.getElementById("routerVendor");
         selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
+        if (payload.live_fetch_interval_seconds) {
+          refreshIntervalMs = Number(payload.live_fetch_interval_seconds) * 1000;
+          setActiveIntervalControl(refreshIntervalMs);
+        }
         select.innerHTML = (payload.routers || []).map(router => `
           <option
             value="${router.vendor}"
@@ -2446,8 +2450,21 @@
       }
     }
 
+    function formatIntervalOption(intervalMs) {
+      const seconds = intervalMs / 1000;
+      return seconds < 60 ? `${seconds}s` : `${seconds / 60}m`;
+    }
+
     function setActiveIntervalControl(intervalMs) {
-      document.getElementById("refreshInterval").value = String(intervalMs);
+      const select = document.getElementById("refreshInterval");
+      const value = String(intervalMs);
+      if (![...select.options].some(option => option.value === value)) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = formatIntervalOption(intervalMs);
+        select.appendChild(option);
+      }
+      select.value = value;
     }
 
     async function refreshData() {
@@ -2668,14 +2685,18 @@
 
     applyTheme(currentTheme);
     setActiveIntervalControl(refreshIntervalMs);
-    loadRouters().then(refreshData);
+    loadRouters()
+      .catch(() => null)
+      .then(() => {
+        refreshData();
+        startRefreshTimer();
+      });
     refreshSpeedTest();
     setDefaultCustomRange();
     updateHistoryRangeStatus();
     updateLanRangeStatus();
     updateSyncRangesButton();
     refreshHistory();
-    startRefreshTimer();
     window.addEventListener("resize", refreshHistory);
   </script>
 </body>
