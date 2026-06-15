@@ -1353,6 +1353,7 @@
     const HUAWEI_FIXED_INTERVAL_MS = 3000;
     let configuredLiveFetchIntervalMs = 15000;
     let refreshIntervalMs = configuredLiveFetchIntervalMs;
+    let defaultCellularHistoryRange = "60";
     let historyRangeMode = "range";
     let historyRangeMinutes = 60;
     let customHistoryRange = null;
@@ -1521,6 +1522,10 @@
         selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
         if (payload.live_fetch_interval_seconds) {
           configuredLiveFetchIntervalMs = Number(payload.live_fetch_interval_seconds) * 1000;
+        }
+        if (payload.default_cellular_history_range) {
+          defaultCellularHistoryRange = String(payload.default_cellular_history_range);
+          applyDefaultHistoryRange(defaultCellularHistoryRange);
         }
         select.innerHTML = (payload.routers || []).map(router => `
           <option
@@ -1926,6 +1931,35 @@
         return `${minutes / 60}h`;
       }
       return `${minutes / 1440}d`;
+    }
+
+    function applyDefaultHistoryRange(value) {
+      const select = document.getElementById("historyRangeSelect");
+      const normalizedValue = String(value || "60").toLowerCase();
+
+      if (normalizedValue === "now") {
+        historyRangeMode = "now";
+        select.value = "now";
+        return;
+      }
+
+      const minutes = Number(normalizedValue);
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        historyRangeMode = "range";
+        historyRangeMinutes = 60;
+        select.value = "60";
+        return;
+      }
+
+      historyRangeMode = "range";
+      historyRangeMinutes = minutes;
+      if (![...select.options].some(option => option.value === String(minutes))) {
+        const option = document.createElement("option");
+        option.value = String(minutes);
+        option.textContent = formatRangeLabel(minutes);
+        select.appendChild(option);
+      }
+      select.value = String(minutes);
     }
 
     function updateHistoryRangeStatus() {
@@ -2755,6 +2789,7 @@
     });
 
     applyTheme(currentTheme);
+    applyDefaultHistoryRange(defaultCellularHistoryRange);
     setActiveIntervalControl(configuredLiveFetchIntervalMs);
     applyVendorIntervalPolicy();
     loadRouters()
