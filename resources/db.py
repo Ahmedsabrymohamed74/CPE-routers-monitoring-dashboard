@@ -467,7 +467,7 @@ def upsert_cell_tag(
             )
 
 
-def fetch_cell_tags(cell_ids=None, pci=None):
+def fetch_cell_tags(cell_ids=None, pci=None, router_vendor=None):
     if not db_config_available():
         return []
 
@@ -483,6 +483,9 @@ def fetch_cell_tags(cell_ids=None, pci=None):
     if pci is not None:
         filters.append("pci = %s")
         params.append(str(pci or "").strip())
+    if router_vendor:
+        filters.append("router_vendor = %s")
+        params.append(str(router_vendor).strip().lower())
     if filters:
         where_clause = "WHERE " + " AND ".join(filters)
 

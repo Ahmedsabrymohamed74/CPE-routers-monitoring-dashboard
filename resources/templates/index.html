@@ -670,6 +670,20 @@
       margin-top: 12px;
     }
 
+    .profile-browser-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .profile-browser-meta {
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-top: 10px;
+    }
+
     .modal-actions {
       display: flex;
       gap: 10px;
@@ -736,6 +750,7 @@
     body.light-theme .label,
     body.light-theme .toolbar-label,
     body.light-theme .field label,
+    body.light-theme .profile-browser-meta,
     body.light-theme .history-range-status,
     body.light-theme .history-table th,
     body.light-theme .cell-group-header,
@@ -1299,6 +1314,7 @@
         <button class="profile-tab active" data-profile-tab="identity" type="button">Identity</button>
         <button class="profile-tab" data-profile-tab="network" type="button">Network</button>
         <button class="profile-tab" data-profile-tab="custom" type="button">Custom</button>
+        <button class="profile-tab" data-profile-tab="saved" type="button">Saved Profiles</button>
       </div>
 
       <div class="modal-tab-panel active" data-profile-panel="identity">
@@ -1336,6 +1352,25 @@
           <button id="addCellProfileField" type="button">Add field</button>
         </div>
       </div>
+
+      <div class="modal-tab-panel" data-profile-panel="saved">
+        <div class="field">
+          <label for="savedProfileRouter">Router Type</label>
+          <select id="savedProfileRouter">
+            <option value="huawei">Huawei</option>
+            <option value="zte">ZTE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="savedProfileSelect">Saved Cell/Tower profile</label>
+          <select id="savedProfileSelect"></select>
+        </div>
+        <div class="profile-browser-actions">
+          <button id="refreshSavedProfiles" type="button">Refresh profiles</button>
+          <button id="loadSavedProfile" type="button">Load selected</button>
+        </div>
+        <div class="profile-browser-meta" id="savedProfileMeta">No saved profile loaded</div>
+      </div>
       <div class="modal-actions">
         <button id="cellTagCancel">Cancel</button>
         <button class="manual-refresh" id="cellTagSave">Save</button>
@@ -1370,6 +1405,10 @@
     let currentPci = null;
     let currentCellTag = null;
     let currentCellProfileSource = {};
+    let activeProfileCellId = null;
+    let activeProfilePci = null;
+    let activeProfileRouterVendor = null;
+    let savedCellProfiles = [];
     let visibleProfileFields = new Set();
     let currentCellGroups = [];
     let selectedHistoryCellId = "";
@@ -1551,18 +1590,56 @@
       `).join("");
     }
 
-    async function loadCellTag(cellId) {
+    async function loadCellTag(cellId, pci = currentPci, routerVendor = selectedRouterVendor) {
       if (!cellId) {
         return null;
       }
 
-      const params = new URLSearchParams({ cell_id: cellId });
-      if (currentPci) {
-        params.set("pci", currentPci);
+      const params = new URLSearchParams({
+        cell_id: cellId,
+        router_vendor: routerVendor,
+      });
+      if (pci) {
+        params.set("pci", pci);
       }
       const res = await fetch(`/api/cell-tags?${params.toString()}`);
       const payload = await responseJsonOrError(res);
       return (payload.items || [])[0] || null;
+    }
+
+    async function loadSavedProfiles(routerVendor = document.getElementById("savedProfileRouter").value) {
+      const params = new URLSearchParams({ router_vendor: routerVendor });
+      const res = await fetch(`/api/cell-tags?${params.toString()}`);
+      const payload = await responseJsonOrError(res);
+      savedCellProfiles = payload.items || [];
+      renderSavedProfileOptions();
+      return savedCellProfiles;
+    }
+
+    function renderSavedProfileOptions() {
+      const select = document.getElementById("savedProfileSelect");
+      if (!savedCellProfiles.length) {
+        select.innerHTML = '<option value="">No saved profiles</option>';
+        document.getElementById("savedProfileMeta").textContent = "No saved profiles for this router";
+        return;
+      }
+
+      select.innerHTML = savedCellProfiles.map((profile, index) => `
+        <option value="${index}">${escapeHtml(cellDisplayLabel(profile))} · ${escapeHtml((profile.router_vendor || "").toUpperCase())}</option>
+      `).join("");
+      updateSavedProfileMeta();
+    }
+
+    function selectedSavedProfile() {
+      const index = Number(document.getElementById("savedProfileSelect").value);
+      return Number.isInteger(index) ? savedCellProfiles[index] : null;
+    }
+
+    function updateSavedProfileMeta() {
+      const profile = selectedSavedProfile();
+      document.getElementById("savedProfileMeta").textContent = profile
+        ? `${profile.router_vendor?.toUpperCase() || "--"} · Cell ${profile.cell_id || "--"} · PCI ${profile.pci || "--"} · Updated ${new Date(profile.updated_at).toLocaleString()}`
+        : "No saved profile selected";
     }
 
     function profileFieldValue(value) {
@@ -1575,7 +1652,10 @@
     }
 
     function extractedProfileValue(field, tag = currentCellTag) {
-      return profileFieldValue(tag?.[field.payloadKey] || currentCellProfileSource[field.key]);
+      const fallback = activeProfileCellId === currentCellId && (activeProfilePci || null) === (currentPci || null)
+        ? currentCellProfileSource[field.key]
+        : null;
+      return profileFieldValue(tag?.[field.payloadKey] || fallback);
     }
 
     function renderExtractedProfileFields(tag = currentCellTag) {
@@ -1669,28 +1749,47 @@
       renderCustomFields(fields);
     }
 
-    async function openCellTagModal() {
-      if (!currentCellId) {
-        showErrorPopup("Cell tag error", "No live Cell ID is available yet");
-        return;
-      }
+    function populateProfileModal(profile, options = {}) {
+      const routerVendor = (profile?.router_vendor || options.routerVendor || selectedRouterVendor || "").toLowerCase();
+      activeProfileCellId = profile?.cell_id || options.cellId || currentCellId;
+      activeProfilePci = profile?.pci || options.pci || currentPci || "";
+      activeProfileRouterVendor = routerVendor;
+      currentCellTag = profile || null;
 
+      document.getElementById("cellTagCellId").value = activeProfileCellId || "";
+      document.getElementById("cellTagPci").value = activeProfilePci || "--";
+      document.getElementById("cellTagRouterType").value = routerVendor.toUpperCase();
+      document.getElementById("cellTagRegion").value = profile?.iso_region_code || "EG-C";
+      document.getElementById("cellTagCustomLabel").value = profile?.custom_label || "";
+      visibleProfileFields = new Set(extractedProfileFields.map(field => field.key));
+      renderExtractedProfileFields(profile);
+      renderCustomFields(profile?.custom_fields || {});
+    }
+
+    async function openCellTagModal() {
       try {
         if (isoRegions.length === 0) {
           await loadIsoRegions();
         }
 
-        const tag = await loadCellTag(currentCellId);
-        currentCellTag = tag;
-        document.getElementById("cellTagCellId").value = currentCellId;
-        document.getElementById("cellTagPci").value = currentPci || "--";
-        document.getElementById("cellTagRouterType").value = selectedRouterVendor.toUpperCase();
-        document.getElementById("cellTagRegion").value = tag?.iso_region_code || "EG-C";
-        document.getElementById("cellTagCustomLabel").value = tag?.custom_label || "";
-        visibleProfileFields = new Set(extractedProfileFields.map(field => field.key));
-        renderExtractedProfileFields(tag);
-        renderCustomFields(tag?.custom_fields || {});
-        setProfileTab("identity");
+        if (currentCellId) {
+          const tag = await loadCellTag(currentCellId, currentPci, selectedRouterVendor);
+          populateProfileModal(tag, {
+            cellId: currentCellId,
+            pci: currentPci,
+            routerVendor: selectedRouterVendor,
+          });
+        } else {
+          populateProfileModal(null, {
+            cellId: "",
+            pci: "",
+            routerVendor: selectedRouterVendor,
+          });
+        }
+
+        document.getElementById("savedProfileRouter").value = selectedRouterVendor;
+        loadSavedProfiles(selectedRouterVendor).catch(err => showErrorPopup("Saved profiles error", err.message || err));
+        setProfileTab(currentCellId ? "identity" : "saved");
         document.getElementById("cellTagModal").classList.add("visible");
       } catch (err) {
         showErrorPopup("Cell tag error", err.message || err);
@@ -1703,9 +1802,9 @@
 
     async function saveCellTag() {
       const payload = {
-        cell_id: document.getElementById("cellTagCellId").value,
-        pci: readProfileField("cellTagPci"),
-        router_vendor: selectedRouterVendor,
+        cell_id: activeProfileCellId || document.getElementById("cellTagCellId").value,
+        pci: activeProfilePci || readProfileField("cellTagPci"),
+        router_vendor: activeProfileRouterVendor || selectedRouterVendor,
         iso_region_code: document.getElementById("cellTagRegion").value,
         custom_label: document.getElementById("cellTagCustomLabel").value,
         ...readExtractedProfileFields(),
@@ -1720,11 +1819,13 @@
         });
         const saved = await responseJsonOrError(res);
         currentCellTag = saved.item;
-        setText("cell_id", cellDisplayLabel({
-          cell_id: currentCellId,
-          pci: currentPci,
-          cell_tag: currentCellTag?.cell_tag,
-        }));
+        if (activeProfileCellId === currentCellId && (activeProfilePci || null) === (currentPci || null)) {
+          setText("cell_id", cellDisplayLabel({
+            cell_id: currentCellId,
+            pci: currentPci,
+            cell_tag: currentCellTag?.cell_tag,
+          }));
+        }
         closeCellTagModal();
         refreshHistory();
       } catch (err) {
@@ -2674,6 +2775,22 @@
     });
     document.getElementById("editCellTag").addEventListener("click", openCellTagModal);
     document.getElementById("addCellProfileField").addEventListener("click", addCustomFieldRow);
+    document.getElementById("savedProfileRouter").addEventListener("change", event => {
+      loadSavedProfiles(event.target.value).catch(err => showErrorPopup("Saved profiles error", err.message || err));
+    });
+    document.getElementById("savedProfileSelect").addEventListener("change", updateSavedProfileMeta);
+    document.getElementById("refreshSavedProfiles").addEventListener("click", () => {
+      loadSavedProfiles().catch(err => showErrorPopup("Saved profiles error", err.message || err));
+    });
+    document.getElementById("loadSavedProfile").addEventListener("click", () => {
+      const profile = selectedSavedProfile();
+      if (!profile) {
+        showErrorPopup("Saved profiles error", "No saved profile selected");
+        return;
+      }
+      populateProfileModal(profile);
+      setProfileTab("identity");
+    });
     document.getElementById("cellTagCancel").addEventListener("click", closeCellTagModal);
     document.getElementById("cellTagSave").addEventListener("click", saveCellTag);
     document.getElementById("cellTagModal").addEventListener("click", event => {

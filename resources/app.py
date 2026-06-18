@@ -259,6 +259,7 @@ def build_cellular_payload(vendor=None):
 def apply_cell_tag(payload):
     cell_id = payload.get("cell_id")
     pci = payload.get("pci")
+    router_vendor = payload.get("router_vendor")
     payload["cell_tag"] = None
     payload["cell_tag_router_vendor"] = None
     payload["cell_profile"] = None
@@ -274,7 +275,7 @@ def apply_cell_tag(payload):
 
     try:
         ensure_db_initialized()
-        tags = fetch_cell_tags([cell_id], pci=pci)
+        tags = fetch_cell_tags([cell_id], pci=pci, router_vendor=router_vendor)
     except Exception as exc:
         print(f"[!] Cell tag lookup error for cell_id={cell_id!r}: {exc}", flush=True)
         return payload
@@ -540,8 +541,9 @@ def cell_tags():
         ensure_db_initialized()
         cell_id = request.args.get("cell_id")
         pci = request.args.get("pci")
+        router_vendor = request.args.get("router_vendor")
         cell_ids = [cell_id] if cell_id else None
-        return jsonify({"items": fetch_cell_tags(cell_ids, pci=pci)})
+        return jsonify({"items": fetch_cell_tags(cell_ids, pci=pci, router_vendor=router_vendor)})
     except Exception as exc:
         print(f"[!] Cell tag fetch error: {exc}", flush=True)
         return jsonify({
@@ -587,7 +589,7 @@ def save_cell_tag():
             profile_cqi0=clean_value(payload.get("profile_cqi0")),
             custom_fields=custom_fields,
         )
-        items = fetch_cell_tags([cell_id], pci=pci) if fetch_cell_tags else []
+        items = fetch_cell_tags([cell_id], pci=pci, router_vendor=router_vendor) if fetch_cell_tags else []
         return jsonify({"saved": True, "item": items[0] if items else None})
     except Exception as exc:
         print(f"[!] Cell tag save error: {exc}", flush=True)
