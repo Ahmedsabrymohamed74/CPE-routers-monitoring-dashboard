@@ -684,6 +684,10 @@
       margin-top: 10px;
     }
 
+    .hidden {
+      display: none;
+    }
+
     .modal-actions {
       display: flex;
       gap: 10px;
@@ -1007,10 +1011,10 @@
           </div>
 
           <div class="card">
-            <div class="label">Cell ID</div>
-            <button class="card-action" id="editCellTag" title="Tag this Cell ID">+</button>
+            <div class="label">Cell/Tower Profile</div>
+            <button class="card-action" id="editCellTag" title="Add profile" aria-label="Add profile">+</button>
             <div class="value wide-value" id="cell_id">--</div>
-            <div class="tooltip">The serving LTE cell identifier. When tagged, this shows the custom tower label and ISO 3166-2 region with the Cell ID in brackets.</div>
+            <div class="tooltip">The serving cell profile. When tagged, this shows the custom tower label with the Cell ID in brackets.</div>
           </div>
         </div>
       </div>
@@ -1309,15 +1313,14 @@
 
   <div class="modal-backdrop" id="cellTagModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cellTagTitle">
-      <div class="modal-title" id="cellTagTitle">Cell/Tower Profile</div>
-      <div class="modal-tabs">
+      <div class="modal-title" id="cellTagTitle">Saved Profiles</div>
+      <div class="modal-tabs hidden" id="profileEditorTabs">
         <button class="profile-tab active" data-profile-tab="identity" type="button">Identity</button>
         <button class="profile-tab" data-profile-tab="network" type="button">Network</button>
         <button class="profile-tab" data-profile-tab="custom" type="button">Custom</button>
-        <button class="profile-tab" data-profile-tab="saved" type="button">Saved Profiles</button>
       </div>
 
-      <div class="modal-tab-panel active" data-profile-panel="identity">
+      <div class="modal-tab-panel" data-profile-panel="identity">
         <div class="field">
           <label for="cellTagCellId">Cell ID</label>
           <input id="cellTagCellId" readonly>
@@ -1353,7 +1356,7 @@
         </div>
       </div>
 
-      <div class="modal-tab-panel" data-profile-panel="saved">
+      <div class="modal-tab-panel active" data-profile-panel="saved">
         <div class="field">
           <label for="savedProfileRouter">Router Type</label>
           <select id="savedProfileRouter">
@@ -1368,10 +1371,15 @@
         <div class="profile-browser-actions">
           <button id="refreshSavedProfiles" type="button">Refresh profiles</button>
           <button id="loadSavedProfile" type="button">Load selected</button>
+          <button id="editCurrentProfile" type="button">Add current profile</button>
         </div>
         <div class="profile-browser-meta" id="savedProfileMeta">No saved profile loaded</div>
       </div>
-      <div class="modal-actions">
+      <div class="modal-actions" id="profileBrowserActions">
+        <button id="cellTagBrowseCancel">Cancel</button>
+      </div>
+      <div class="modal-actions hidden" id="profileEditorActions">
+        <button id="backToSavedProfiles" type="button">Back</button>
         <button id="cellTagCancel">Cancel</button>
         <button class="manual-refresh" id="cellTagSave">Save</button>
       </div>
@@ -1525,6 +1533,26 @@
       return profileId || "--";
     }
 
+    function cellCardProfileLabel(item) {
+      if (!item?.cell_id) {
+        return "--";
+      }
+
+      const customLabel = item.custom_label;
+      return customLabel ? `${customLabel} (${item.cell_id})` : item.cell_id;
+    }
+
+    function hasProfileTag(tag = currentCellTag) {
+      return Boolean(tag && (tag.cell_tag || tag.iso_region_code || tag.custom_label));
+    }
+
+    function updateCellProfileAction() {
+      const button = document.getElementById("editCellTag");
+      const title = hasProfileTag() ? "Edit profile" : "Add profile";
+      button.title = title;
+      button.setAttribute("aria-label", title);
+    }
+
     function clearLiveMetrics() {
       [
         "network_type",
@@ -1550,6 +1578,7 @@
       currentPci = null;
       currentCellTag = null;
       currentCellProfileSource = {};
+      updateCellProfileAction();
       document.getElementById("raw").textContent = "";
     }
 
@@ -1711,6 +1740,22 @@
       });
     }
 
+    function setProfileBrowserMode() {
+      document.getElementById("cellTagTitle").textContent = "Saved Profiles";
+      document.getElementById("profileEditorTabs").classList.add("hidden");
+      document.getElementById("profileBrowserActions").classList.remove("hidden");
+      document.getElementById("profileEditorActions").classList.add("hidden");
+      setProfileTab("saved");
+    }
+
+    function setProfileEditorMode(tabName = "identity") {
+      document.getElementById("cellTagTitle").textContent = "Cell/Tower Profile";
+      document.getElementById("profileEditorTabs").classList.remove("hidden");
+      document.getElementById("profileBrowserActions").classList.add("hidden");
+      document.getElementById("profileEditorActions").classList.remove("hidden");
+      setProfileTab(tabName);
+    }
+
     function renderCustomFields(fields = {}) {
       const container = document.getElementById("cellProfileCustomFields");
       const entries = Object.entries(fields);
@@ -1754,7 +1799,6 @@
       activeProfileCellId = profile?.cell_id || options.cellId || currentCellId;
       activeProfilePci = profile?.pci || options.pci || currentPci || "";
       activeProfileRouterVendor = routerVendor;
-      currentCellTag = profile || null;
 
       document.getElementById("cellTagCellId").value = activeProfileCellId || "";
       document.getElementById("cellTagPci").value = activeProfilePci || "--";
@@ -1772,24 +1816,19 @@
           await loadIsoRegions();
         }
 
+        let currentProfile = null;
         if (currentCellId) {
-          const tag = await loadCellTag(currentCellId, currentPci, selectedRouterVendor);
-          populateProfileModal(tag, {
-            cellId: currentCellId,
-            pci: currentPci,
-            routerVendor: selectedRouterVendor,
-          });
-        } else {
-          populateProfileModal(null, {
-            cellId: "",
-            pci: "",
-            routerVendor: selectedRouterVendor,
-          });
+          currentProfile = await loadCellTag(currentCellId, currentPci, selectedRouterVendor);
+          currentCellTag = currentProfile;
+          updateCellProfileAction();
         }
 
         document.getElementById("savedProfileRouter").value = selectedRouterVendor;
+        const editCurrentProfile = document.getElementById("editCurrentProfile");
+        editCurrentProfile.textContent = hasProfileTag(currentProfile) ? "Edit current profile" : "Add current profile";
+        editCurrentProfile.disabled = !currentCellId;
         loadSavedProfiles(selectedRouterVendor).catch(err => showErrorPopup("Saved profiles error", err.message || err));
-        setProfileTab(currentCellId ? "identity" : "saved");
+        setProfileBrowserMode();
         document.getElementById("cellTagModal").classList.add("visible");
       } catch (err) {
         showErrorPopup("Cell tag error", err.message || err);
@@ -1818,13 +1857,14 @@
           body: JSON.stringify(payload),
         });
         const saved = await responseJsonOrError(res);
-        currentCellTag = saved.item;
         if (activeProfileCellId === currentCellId && (activeProfilePci || null) === (currentPci || null)) {
-          setText("cell_id", cellDisplayLabel({
+          currentCellTag = saved.item;
+          setText("cell_id", cellCardProfileLabel({
             cell_id: currentCellId,
-            pci: currentPci,
             cell_tag: currentCellTag?.cell_tag,
+            custom_label: currentCellTag?.custom_label,
           }));
+          updateCellProfileAction();
         }
         closeCellTagModal();
         refreshHistory();
@@ -2705,7 +2745,8 @@
           transmode: data.transmode,
           cqi0: data.cqi0,
         };
-        setText("cell_id", cellDisplayLabel(data));
+        setText("cell_id", cellCardProfileLabel(data));
+        updateCellProfileAction();
 
         setText("rsrp", data.rsrp);
         setText("rsrq", data.rsrq);
@@ -2789,8 +2830,27 @@
         return;
       }
       populateProfileModal(profile);
-      setProfileTab("identity");
+      setProfileEditorMode("identity");
     });
+    document.getElementById("editCurrentProfile").addEventListener("click", async () => {
+      if (!currentCellId) {
+        showErrorPopup("Cell tag error", "No current Cell ID is available");
+        return;
+      }
+      try {
+        const profile = await loadCellTag(currentCellId, currentPci, selectedRouterVendor);
+        populateProfileModal(profile, {
+          cellId: currentCellId,
+          pci: currentPci,
+          routerVendor: selectedRouterVendor,
+        });
+        setProfileEditorMode("identity");
+      } catch (err) {
+        showErrorPopup("Cell tag error", err.message || err);
+      }
+    });
+    document.getElementById("backToSavedProfiles").addEventListener("click", setProfileBrowserMode);
+    document.getElementById("cellTagBrowseCancel").addEventListener("click", closeCellTagModal);
     document.getElementById("cellTagCancel").addEventListener("click", closeCellTagModal);
     document.getElementById("cellTagSave").addEventListener("click", saveCellTag);
     document.getElementById("cellTagModal").addEventListener("click", event => {
