@@ -556,46 +556,74 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=
         return []
 
     minutes = max(1, int(minutes))
-    where_clause = "cm.time >= now() - (%s || ' minutes')::interval"
-    params = [minutes]
+    where_clause = "time >= now() - (%s || ' minutes')::interval"
+    filtered_params = [minutes]
 
     if start and end:
-        where_clause = "cm.time >= %s::timestamptz AND cm.time <= %s::timestamptz"
-        params = [start, end]
+        where_clause = "time >= %s::timestamptz AND time <= %s::timestamptz"
+        filtered_params = [start, end]
     elif start:
-        where_clause = "cm.time >= %s::timestamptz"
-        params = [start]
+        where_clause = "time >= %s::timestamptz"
+        filtered_params = [start]
     elif end:
-        where_clause = "cm.time <= %s::timestamptz"
-        params = [end]
+        where_clause = "time <= %s::timestamptz"
+        filtered_params = [end]
 
+    all_seen_filters = [
+        "cell_id IS NOT NULL",
+        "cell_id <> ''",
+    ]
     if router_vendor:
-        where_clause = f"{where_clause} AND cm.router_vendor = %s"
-        params.append(str(router_vendor).strip().lower())
+        normalized_router_vendor = str(router_vendor).strip().lower()
+        where_clause = f"{where_clause} AND router_vendor = %s"
+        filtered_params.append(normalized_router_vendor)
+        all_seen_filters.append("router_vendor = %s")
+        all_seen_params = [normalized_router_vendor]
+    else:
+        all_seen_params = []
 
     sql = f"""
+    WITH all_seen AS (
+        SELECT
+            cell_id,
+            pci,
+            router_vendor,
+            MIN(time) AS first_seen
+        FROM cellular_metrics
+        WHERE {" AND ".join(all_seen_filters)}
+        GROUP BY cell_id, pci, router_vendor
+    ),
+    filtered_metrics AS (
+        SELECT *
+        FROM cellular_metrics
+        WHERE {where_clause}
+          AND cell_id IS NOT NULL
+          AND cell_id <> ''
+    )
     SELECT
-        cm.cell_id,
-        cm.pci,
+        fm.cell_id,
+        fm.pci,
         cit.router_vendor AS tag_router_vendor,
         cit.iso_region_code,
         cit.custom_label,
         cit.notes,
         COUNT(*) AS sample_count,
-        MIN(cm.time) AS first_seen,
-        MAX(cm.time) AS last_seen,
-        AVG(cm.rsrp) AS avg_rsrp,
-        AVG(cm.rsrq) AS avg_rsrq,
-        AVG(cm.sinr) AS avg_sinr,
-        AVG(cm.rssi) AS avg_rssi
-    FROM cellular_metrics cm
-    LEFT JOIN cell_id_tags cit ON cit.cell_id = cm.cell_id AND cit.pci = COALESCE(cm.pci, '')
-    WHERE {where_clause}
-      AND cm.cell_id IS NOT NULL
-      AND cm.cell_id <> ''
-    GROUP BY cm.cell_id, cm.pci, cit.router_vendor, cit.iso_region_code, cit.custom_label, cit.notes
+        MIN(all_seen.first_seen) AS first_seen,
+        MAX(fm.time) AS last_seen,
+        AVG(fm.rsrp) AS avg_rsrp,
+        AVG(fm.rsrq) AS avg_rsrq,
+        AVG(fm.sinr) AS avg_sinr,
+        AVG(fm.rssi) AS avg_rssi
+    FROM filtered_metrics fm
+    LEFT JOIN all_seen
+      ON all_seen.cell_id = fm.cell_id
+     AND all_seen.pci IS NOT DISTINCT FROM fm.pci
+     AND all_seen.router_vendor IS NOT DISTINCT FROM fm.router_vendor
+    LEFT JOIN cell_id_tags cit ON cit.cell_id = fm.cell_id AND cit.pci = COALESCE(fm.pci, '')
+    GROUP BY fm.cell_id, fm.pci, cit.router_vendor, cit.iso_region_code, cit.custom_label, cit.notes
     ORDER BY last_seen DESC, sample_count DESC;
     """
+    params = all_seen_params + filtered_params
 
     with get_conn() as conn:
         with conn.cursor() as cur:
