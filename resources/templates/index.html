@@ -710,7 +710,7 @@
       cursor: pointer;
       display: grid;
       gap: 8px;
-      grid-template-columns: minmax(0, 1.5fr) repeat(5, minmax(80px, 0.7fr));
+      grid-template-columns: minmax(0, 1.5fr) repeat(6, minmax(80px, 0.7fr));
       padding: 10px 12px;
       text-align: left;
       width: 100%;
@@ -2513,8 +2513,8 @@
       if (key === "cell_label") {
         return cellDisplayLabel(group).toLowerCase();
       }
-      if (key === "last_seen") {
-        return new Date(group.last_seen || 0).getTime();
+      if (key === "first_seen" || key === "last_seen") {
+        return new Date(group[key] || 0).getTime();
       }
       const value = Number(group[key]);
       return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
@@ -2550,6 +2550,10 @@
       return value === null || value === undefined ? "--" : Number(value).toFixed(1);
     }
 
+    function formatGroupDate(value) {
+      return value ? new Date(value).toLocaleString() : "--";
+    }
+
     function renderCellGroups(groups) {
       const container = document.getElementById("cellGroupList");
       if (!groups || groups.length === 0) {
@@ -2560,6 +2564,7 @@
             <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
             <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
             <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+            <button class="cell-group-sort" data-sort-key="first_seen">First Seen${cellGroupSortLabel("first_seen")}</button>
             <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
           </div>
           <div class="cell-group-item">
@@ -2577,6 +2582,7 @@
           <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
           <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
           <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+          <button class="cell-group-sort" data-sort-key="first_seen">First Seen${cellGroupSortLabel("first_seen")}</button>
           <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
         </div>
       ` + sortedCellGroups(groups).map(group => `
@@ -2586,7 +2592,8 @@
           <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrp)}</div>
           <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrq)}</div>
           <div class="cell-group-stat">${formatGroupAverage(group.avg_sinr)}</div>
-          <div class="cell-group-stat">${new Date(group.last_seen).toLocaleString()}</div>
+          <div class="cell-group-stat">${formatGroupDate(group.first_seen)}</div>
+          <div class="cell-group-stat">${formatGroupDate(group.last_seen)}</div>
         </button>
       `).join("");
 
