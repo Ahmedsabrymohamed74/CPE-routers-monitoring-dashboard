@@ -15,6 +15,12 @@ Features:
 - TLS ingress and LAN/external access notes.
 - DNS-free LAN hostname via `router-dashboard.192.168.9.4.sslip.io`.
 
+## Architecture
+
+Kubernetes architecture diagrams for this repository are generated from the local manifests with KubeDiagrams.
+
+![Kubernetes architecture](docs/diagrams/full-cluster.svg)
+
 ## Quick Deploy
 
 Create or decrypt the Secret first, then apply the app manifests:
@@ -84,3 +90,62 @@ Live router data is available from:
 - `docs/configmap.md`
 - `docs/certificates-and-access.md`
 - `docs/speed-tests.md`
+
+## Kubernetes Diagrams
+
+KubeDiagrams is used here to render architecture diagrams from the Kubernetes manifests under `k8s_mani/`. The generator intentionally uses only explicit non-secret manifest paths; it does not include real Secret manifests, router credentials, database passwords, TLS keys, or private certificate material.
+
+Prerequisites:
+
+- Linux shell environment.
+- Python 3.9 or newer.
+- Graphviz `dot`.
+- KubeDiagrams CLI, which provides `kube-diagrams`.
+
+Install KubeDiagrams for the current user:
+
+```bash
+python3 -m pip install --user KubeDiagrams
+```
+
+If `python3 -m pip` is unavailable on the VM, bootstrap user-local pip first:
+
+```bash
+python3 -m ensurepip --user
+python3 -m pip install --user KubeDiagrams
+```
+
+Install Graphviz if `dot` is not already available. For example, on Fedora/RHEL-like systems:
+
+```bash
+sudo dnf install graphviz
+```
+
+Generate diagrams:
+
+```bash
+scripts/generate-kube-diagrams.sh
+```
+
+Generated files are written to:
+
+```text
+docs/diagrams/
+```
+
+Expected SVG outputs:
+
+```text
+docs/diagrams/backend.svg
+docs/diagrams/full-cluster.svg
+```
+
+The script also generates optional diagrams when matching non-secret manifests exist:
+
+```text
+docs/diagrams/database.svg
+docs/diagrams/traefik.svg
+docs/diagrams/monitoring.svg
+```
+
+If the installed KubeDiagrams version supports Mermaid output, the script also writes `.mmd` files next to the SVG files. Missing optional formats do not fail the run.
