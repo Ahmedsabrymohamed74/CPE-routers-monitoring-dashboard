@@ -2,7 +2,7 @@
 
 Flask-based dashboard for Huawei and ZTE router cellular metrics.
   Implemented adapters for models:
-Huwaei:  TBC
+Huwaei:  H153-381
 ZTE: MF296C
 
 Features:
