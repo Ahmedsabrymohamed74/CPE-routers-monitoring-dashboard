@@ -149,3 +149,7 @@ docs/diagrams/monitoring.svg
 ```
 
 If the installed KubeDiagrams version supports Mermaid output, the script also writes `.mmd` files next to the SVG files. Missing optional formats do not fail the run.
+
+### Cellular history profiles
+
+See [cell/sector filtering, chart profile tooltips, loading behavior and tests](docs/history-profiles.md) for issues #25–#27.

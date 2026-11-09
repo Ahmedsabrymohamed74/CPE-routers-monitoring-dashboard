@@ -610,6 +610,7 @@ def history():
         start = request.args.get("start")
         end = request.args.get("end")
         cell_id = request.args.get("cell_id")
+        sector_filters = {key: request.args.get(key) for key in ("pci", "enodeb_id", "tac")}
         latest = str(request.args.get("latest") or "").strip().lower() in {"1", "true", "yes", "on"}
         vendor = (request.args.get("vendor") or configured_router_vendor()).strip().lower()
         if vendor not in routers:
@@ -621,6 +622,7 @@ def history():
             "start": start,
             "end": end,
             "cell_id": cell_id,
+            **sector_filters,
             "router_vendor": vendor,
             "items": fetch_history(
                 minutes=minutes,
@@ -630,6 +632,7 @@ def history():
                 cell_id=cell_id,
                 router_vendor=vendor,
                 latest=latest,
+                **sector_filters,
             ),
             "cell_groups": fetch_history_cell_groups(
                 minutes=minutes,

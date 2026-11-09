@@ -29,3 +29,6 @@ certs/
 *.crt
 resources/main.js
 resources/main_beautified.js
+
+# UI test dependencies
+node_modules/

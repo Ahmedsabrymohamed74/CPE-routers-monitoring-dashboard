@@ -586,12 +586,14 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=
     WITH all_seen AS (
         SELECT
             cell_id,
-            pci,
+            COALESCE(pci, '') AS pci,
+            COALESCE(enodeb_id, '') AS enodeb_id,
+            COALESCE(tac, '') AS tac,
             router_vendor,
             MIN(time) AS first_seen
         FROM cellular_metrics
         WHERE {" AND ".join(all_seen_filters)}
-        GROUP BY cell_id, pci, router_vendor
+        GROUP BY cell_id, COALESCE(pci, ''), COALESCE(enodeb_id, ''), COALESCE(tac, ''), router_vendor
     ),
     filtered_metrics AS (
         SELECT *
@@ -602,7 +604,11 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=
     )
     SELECT
         fm.cell_id,
-        fm.pci,
+        COALESCE(fm.pci, '') AS pci,
+        COALESCE(fm.enodeb_id, '') AS enodeb_id,
+        COALESCE(fm.tac, '') AS tac,
+        MAX(cit.profile_enodeb_id) AS profile_enodeb_id,
+        MAX(cit.profile_tac) AS profile_tac,
         cit.router_vendor AS tag_router_vendor,
         cit.iso_region_code,
         cit.custom_label,
@@ -617,10 +623,13 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=
     FROM filtered_metrics fm
     LEFT JOIN all_seen
       ON all_seen.cell_id = fm.cell_id
-     AND all_seen.pci IS NOT DISTINCT FROM fm.pci
+     AND all_seen.pci = COALESCE(fm.pci, '')
+     AND all_seen.enodeb_id = COALESCE(fm.enodeb_id, '')
+     AND all_seen.tac = COALESCE(fm.tac, '')
      AND all_seen.router_vendor IS NOT DISTINCT FROM fm.router_vendor
     LEFT JOIN cell_id_tags cit ON cit.cell_id = fm.cell_id AND cit.pci = COALESCE(fm.pci, '')
-    GROUP BY fm.cell_id, fm.pci, cit.router_vendor, cit.iso_region_code, cit.custom_label, cit.notes
+      AND (cit.router_vendor = fm.router_vendor OR cit.router_vendor IS NULL OR cit.router_vendor = '')
+    GROUP BY fm.cell_id, COALESCE(fm.pci, ''), COALESCE(fm.enodeb_id, ''), COALESCE(fm.tac, ''), cit.router_vendor, cit.iso_region_code, cit.custom_label, cit.notes
     ORDER BY last_seen DESC, sample_count DESC;
     """
     params = all_seen_params + filtered_params
@@ -633,6 +642,10 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=
     keys = [
         "cell_id",
         "pci",
+        "enodeb_id",
+        "tac",
+        "profile_enodeb_id",
+        "profile_tac",
         "tag_router_vendor",
         "iso_region_code",
         "custom_label",
@@ -661,7 +674,8 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=
     return result
 
 
-def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, router_vendor=None, latest=False):
+def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, router_vendor=None, latest=False,
+                  pci=None, enodeb_id=None, tac=None):
     if not db_config_available():
         return []
 
@@ -689,6 +703,13 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, r
         where_clause = f"{where_clause} AND cm.cell_id = %s"
         params.append(str(cell_id))
 
+    # None means all sectors; an explicit empty string matches missing metadata.
+    for column, value in (("pci", pci), ("enodeb_id", enodeb_id), ("tac", tac)):
+        if value is not None:
+            where_clause += f" AND COALESCE(cm.{column}, '') = %s"
+            params.append(str(value).strip())
+
+    row_limit = "LIMIT 1" if limit == 1 else ""
     sql = f"""
     SELECT
         cm.time,
@@ -717,8 +738,10 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, r
         cm.cqi0
     FROM cellular_metrics cm
     LEFT JOIN cell_id_tags cit ON cit.cell_id = cm.cell_id AND cit.pci = COALESCE(cm.pci, '')
+      AND (cit.router_vendor = cm.router_vendor OR cit.router_vendor IS NULL OR cit.router_vendor = '')
     WHERE {where_clause}
-    ORDER BY cm.time DESC;
+    ORDER BY cm.time DESC
+    {row_limit};
     """
 
     with get_conn() as conn:

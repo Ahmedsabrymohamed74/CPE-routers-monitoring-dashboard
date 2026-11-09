@@ -438,6 +438,9 @@
       margin-left: auto;
     }
 
+    .history-profile-details { width: 100%; font-size: 13px; }
+    .history-toolbar :disabled { cursor: not-allowed; opacity: 0.6; }
+
     .custom-range {
       display: flex;
       flex-wrap: wrap;
@@ -1160,7 +1163,7 @@
       <details class="metric-subsection" open>
         <summary class="metric-subtitle">Cellular Metrics</summary>
         <div class="history-toolbar">
-          <span class="toolbar-label">Range:</span>
+          <label class="toolbar-label" for="historyRangeSelect">Range:</label>
           <select id="historyRangeSelect">
             <option value="now">Now</option>
             <option value="5">5m</option>
@@ -1173,11 +1176,17 @@
             <option value="4320">3d</option>
             <option value="10080">7d</option>
           </select>
-          <span class="toolbar-label">Choose tower / Cell ID:</span>
+          <label class="toolbar-label" for="historyCellFilter">Cell ID:</label>
           <select id="historyCellFilter">
             <option value="">All cells</option>
           </select>
+          <label class="toolbar-label" for="historyProfileFilter">PCI / eNodeB:</label>
+          <select id="historyProfileFilter" disabled>
+            <option value="">All sectors (PCI)</option>
+          </select>
+          <span id="historyLoading" role="status" aria-live="polite" hidden>Loading cellular history…</span>
           <span class="history-range-status" id="historyRangeStatus">Showing last 1h</span>
+          <div id="historyProfileDetails" class="history-profile-details">All cells and sector profiles</div>
           <div class="custom-range">
             <span class="toolbar-label">Custom:</span>
             <input type="datetime-local" id="historyStart">
@@ -1365,7 +1374,9 @@
           </select>
         </div>
         <div class="field">
-          <label for="savedProfileSelect">Saved Cell/Tower profile</label>
+          <label for="savedProfileCellSelect">Cell ID</label>
+          <select id="savedProfileCellSelect"></select>
+          <label for="savedProfileSelect">PCI / eNodeB profile</label>
           <select id="savedProfileSelect"></select>
         </div>
         <div class="profile-browser-actions">
@@ -1420,6 +1431,14 @@
     let visibleProfileFields = new Set();
     let currentCellGroups = [];
     let selectedHistoryCellId = "";
+    let selectedHistoryProfile = "";
+    let historyRequest = null;
+    let historyRequestKey = null;
+    let historyRequestVersion = 0;
+    let historyController = null;
+    let historyLastRequestedAt = 0;
+    const HISTORY_BACKGROUND_INTERVAL_MS = 30000;
+    const HISTORY_REQUEST_TIMEOUT_MS = 15000;
     let cellGroupSortKey = "last_seen";
     let cellGroupSortDirection = "desc";
     let isoRegions = [];
@@ -1519,18 +1538,17 @@
     }
 
     function cellDisplayLabel(item) {
-      if (!item) {
-        return "--";
-      }
-
-      const cellId = item.cell_id;
+      if (!item?.cell_id) return "--";
+      const parts = [`Cell ${item.cell_id}`];
       const pci = item.pci;
-      const profileId = pci ? `${cellId} / PCI ${pci}` : cellId;
-      const tag = item.cell_tag || (item.cell_label && item.cell_label !== cellId ? item.cell_label : null);
-      if (tag && cellId) {
-        return `${tag} (${profileId})`;
-      }
-      return profileId || "--";
+      const enodeb = item.enodeb_id == null || item.enodeb_id === "" ? item.profile_enodeb_id : item.enodeb_id;
+      const tac = item.tac == null || item.tac === "" ? item.profile_tac : item.tac;
+      if (pci !== null && pci !== undefined && pci !== "") parts.push(`PCI ${pci}`);
+      if (enodeb !== null && enodeb !== undefined && enodeb !== "") parts.push(`eNodeB ${enodeb}`);
+      if (tac !== null && tac !== undefined && tac !== "") parts.push(`TAC ${tac}`);
+      const identity = parts.join(" · ");
+      const tag = item.cell_tag || (item.cell_label && item.cell_label !== item.cell_id ? item.cell_label : null);
+      return tag ? `${tag} (${identity})` : identity;
     }
 
     function cellCardProfileLabel(item) {
@@ -1646,28 +1664,40 @@
     }
 
     function renderSavedProfileOptions() {
-      const select = document.getElementById("savedProfileSelect");
-      if (!savedCellProfiles.length) {
-        select.innerHTML = '<option value="">No saved profiles</option>';
-        document.getElementById("savedProfileMeta").textContent = "No saved profiles for this router";
-        return;
-      }
+      const cellSelect = document.getElementById("savedProfileCellSelect");
+      const cells = [...new Set(savedCellProfiles.map(profile => String(profile.cell_id)))];
+      const previous = cellSelect.value;
+      cellSelect.innerHTML = cells.length
+        ? cells.map(cell => `<option value="${escapeHtml(cell)}">${escapeHtml(cell)}</option>`).join("")
+        : '<option value="">No saved cells</option>';
+      cellSelect.value = cells.includes(previous) ? previous : (cells[0] || "");
+      renderSavedSectorOptions();
+    }
 
-      select.innerHTML = savedCellProfiles.map((profile, index) => `
-        <option value="${index}">${escapeHtml(cellDisplayLabel(profile))} · ${escapeHtml((profile.router_vendor || "").toUpperCase())}</option>
-      `).join("");
+    function renderSavedSectorOptions() {
+      const cell = document.getElementById("savedProfileCellSelect").value;
+      const select = document.getElementById("savedProfileSelect");
+      const profiles = savedCellProfiles.map((profile, index) => ({profile, index}))
+        .filter(({profile}) => String(profile.cell_id) === cell);
+      select.innerHTML = profiles.length ? profiles.map(({profile, index}) => `
+        <option value="${index}">${escapeHtml(cellDisplayLabel(profile))}</option>
+      `).join("") : '<option value="">No saved profiles</option>';
+      select.disabled = !profiles.length;
+      document.getElementById("loadSavedProfile").disabled = !profiles.length;
       updateSavedProfileMeta();
     }
 
     function selectedSavedProfile() {
-      const index = Number(document.getElementById("savedProfileSelect").value);
+      const value = document.getElementById("savedProfileSelect").value;
+      if (value === "") return null;
+      const index = Number(value);
       return Number.isInteger(index) ? savedCellProfiles[index] : null;
     }
 
     function updateSavedProfileMeta() {
       const profile = selectedSavedProfile();
       document.getElementById("savedProfileMeta").textContent = profile
-        ? `${profile.router_vendor?.toUpperCase() || "--"} · Cell ${profile.cell_id || "--"} · PCI ${profile.pci || "--"} · Updated ${new Date(profile.updated_at).toLocaleString()}`
+        ? `${profile.router_vendor?.toUpperCase() || "--"} · ${cellDisplayLabel(profile)} · Updated ${new Date(profile.updated_at).toLocaleString()}`
         : "No saved profile selected";
     }
 
@@ -2470,8 +2500,10 @@
       }
 
       const cardRect = canvas.parentElement.getBoundingClientRect();
+      const profile = historyMetrics.some(historyMetric => historyMetric.key === metric.key)
+        ? `<strong>Cell/Tower Profile: ${escapeHtml(cellDisplayLabel(item))}</strong><br>` : "";
       tooltip.innerHTML = `
-        <strong>${metric.title}: ${value} ${metric.unit}</strong><br>
+        ${profile}<strong>${metric.title}: ${value} ${metric.unit}</strong><br>
         Avg: ${averageMetricValue(metric, items).toFixed(1)} ${metric.unit}<br>
         ${new Date(item.time).toLocaleString()}
       `;
@@ -2491,16 +2523,66 @@
       drawLanCharts(currentSpeedTestItems);
     }
 
+    function historyProfileKey(group) {
+      return JSON.stringify([group.pci, group.enodeb_id, group.tac].map(value => String(value ?? "")));
+    }
+
+    function updateHistoryOptions(select, options) {
+      const unchanged = select.options.length === options.length && options.every((option, index) =>
+        select.options[index].value === String(option.value) && select.options[index].textContent === option.label);
+      if (unchanged) return;
+      select.replaceChildren(...options.map(({value, label}) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        return option;
+      }));
+    }
+
     function renderCellFilter(groups) {
       const select = document.getElementById("historyCellFilter");
-      const previousValue = selectedHistoryCellId;
-      select.innerHTML = '<option value="">All cells</option>' + groups.map(group => `
-        <option value="${escapeHtml(group.cell_id)}">
-          ${escapeHtml(cellDisplayLabel(group))}
-        </option>
-      `).join("");
-      selectedHistoryCellId = groups.some(group => group.cell_id === previousValue) ? previousValue : "";
+      const cells = new Map();
+      groups.forEach(group => {
+        const id = String(group.cell_id);
+        if (!cells.has(id)) cells.set(id, cellCardProfileLabel(group));
+      });
+      // Keep an unavailable selection visible instead of silently showing different data.
+      if (selectedHistoryCellId && !cells.has(selectedHistoryCellId)) {
+        cells.set(selectedHistoryCellId, `${selectedHistoryCellId} (no samples in range)`);
+      }
+      updateHistoryOptions(select, [{value: "", label: "All cells"},
+        ...[...cells].map(([value, label]) => ({value, label}))]);
       select.value = selectedHistoryCellId;
+      renderHistoryProfileFilter(groups);
+    }
+
+    function renderHistoryProfileFilter(groups) {
+      const select = document.getElementById("historyProfileFilter");
+      const profiles = groups.filter(group => String(group.cell_id) === selectedHistoryCellId);
+      const options = [{value: "", label: "All sectors (PCI)"}, ...profiles.map(group =>
+        ({value: historyProfileKey(group), label: cellDisplayLabel(group)}))];
+      const selected = profiles.find(group => historyProfileKey(group) === selectedHistoryProfile);
+      if (selectedHistoryProfile && !selected) {
+        options.push({value: selectedHistoryProfile, label: "Selected sector (no samples in range)"});
+      }
+      updateHistoryOptions(select, options);
+      select.value = selectedHistoryProfile;
+      select.disabled = !selectedHistoryCellId;
+      document.getElementById("historyProfileDetails").textContent = selected
+        ? `${cellDisplayLabel(selected)} · ${selected.sample_count} samples · First seen ${formatGroupDate(selected.first_seen)}`
+        : selectedHistoryProfile ? "No samples for the selected sector in this range"
+        : selectedHistoryCellId ? `Cell ${selectedHistoryCellId} · All sectors (${profiles.length} profiles)`
+        : "All cells and sector profiles";
+    }
+
+    function setHistoryLoading(loading) {
+      document.getElementById("historyLoading").hidden = !loading;
+      if (loading) historyMetrics.forEach(metric => {
+        document.getElementById(metric.tooltipId).style.display = "none";
+      });
+      document.getElementById("historyRangeStatus").setAttribute("aria-busy", String(loading));
+      // A new selection replaces the active request; loading must never trap the controls.
+      document.getElementById("historyProfileFilter").disabled = !selectedHistoryCellId;
     }
 
     function cellGroupSortLabel(key) {
@@ -2586,7 +2668,7 @@
           <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
         </div>
       ` + sortedCellGroups(groups).map(group => `
-        <button class="cell-group-item" data-cell-id="${escapeHtml(group.cell_id)}" type="button">
+        <button class="cell-group-item" data-cell-id="${escapeHtml(group.cell_id)}" data-profile="${escapeHtml(historyProfileKey(group))}" type="button">
           <div class="cell-group-name">${escapeHtml(cellDisplayLabel(group))}</div>
           <div class="cell-group-stat">${Number(group.sample_count || 0)}</div>
           <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrp)}</div>
@@ -2604,7 +2686,9 @@
         }
         button.addEventListener("click", () => {
           selectedHistoryCellId = button.dataset.cellId || "";
-          document.getElementById("historyCellFilter").value = selectedHistoryCellId;
+          selectedHistoryProfile = button.dataset.profile || "";
+          renderCellFilter(currentCellGroups);
+          updateHistoryRangeStatus();
           refreshHistory();
         });
       });
@@ -2642,45 +2726,80 @@
       `).join("");
     }
 
-    async function refreshHistory() {
-      try {
-        const params = new URLSearchParams({
-          limit: "500",
-          vendor: selectedRouterVendor,
-        });
-        if (historyRangeMode === "now") {
-          params.set("latest", "true");
-          params.set("limit", "1");
-        } else if (customHistoryRange) {
-          params.set("start", customHistoryRange.start);
-          params.set("end", customHistoryRange.end);
-        } else {
-          params.set("minutes", String(historyRangeMinutes));
-        }
-        if (selectedHistoryCellId) {
-          params.set("cell_id", selectedHistoryCellId);
-        }
-
-        const res = await fetch(`/api/history?${params.toString()}`);
-        const payload = await responseJsonOrError(res);
-        const items = payload.items || [];
-        const groups = payload.cell_groups || [];
-        currentHistoryItems = items;
-        currentCellGroups = groups;
-        renderCellFilter(groups);
-        renderCellGroups(groups);
-        drawHistoryCharts(items);
-        renderHistoryTable(items);
-        updateHistoryRangeStatus();
-        document.getElementById("historyRangeStatus").classList.remove("error");
-      } catch (err) {
-        document.getElementById("historyRows").innerHTML =
-          `<tr><td colspan="8" class="error">Error fetching history: ${err}</td></tr>`;
-        document.getElementById("historyRangeStatus").classList.add("error");
-        document.getElementById("historyRangeStatus").textContent =
-          "Historical data error";
-        showErrorPopup("History error", err.message || err);
+    async function refreshHistory({ background = false } = {}) {
+      if (background && (historyRequest || Date.now() - historyLastRequestedAt < HISTORY_BACKGROUND_INTERVAL_MS)) return;
+      const params = new URLSearchParams({limit: "500", vendor: selectedRouterVendor});
+      if (historyRangeMode === "now") {
+        params.set("latest", "true");
+        params.set("limit", "1");
+      } else if (customHistoryRange) {
+        params.set("start", customHistoryRange.start);
+        params.set("end", customHistoryRange.end);
+      } else {
+        params.set("minutes", String(historyRangeMinutes));
       }
+      if (selectedHistoryCellId) params.set("cell_id", selectedHistoryCellId);
+      if (selectedHistoryCellId && selectedHistoryProfile) {
+        const [pci, enodeb, tac] = JSON.parse(selectedHistoryProfile);
+        params.set("pci", pci);
+        params.set("enodeb_id", enodeb);
+        params.set("tac", tac);
+      }
+      const key = params.toString();
+      if (historyRequest && historyRequestKey === key) return historyRequest;
+      historyController?.abort();
+      const controller = new AbortController();
+      historyController = controller;
+      historyRequestKey = key;
+      const version = ++historyRequestVersion;
+      historyLastRequestedAt = Date.now();
+      setHistoryLoading(!background);
+      let timeoutId;
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error("History request timed out. Change a filter or try again."));
+          controller.abort();
+        }, HISTORY_REQUEST_TIMEOUT_MS);
+      });
+      historyRequest = (async () => {
+        try {
+          const payload = await Promise.race([
+            fetch(`/api/history?${key}`, {signal: controller.signal}).then(responseJsonOrError),
+            timeout,
+          ]);
+          if (version !== historyRequestVersion) return;
+          const items = payload.items || [];
+          const groups = payload.cell_groups || [];
+          currentHistoryItems = items;
+          currentCellGroups = groups;
+          renderCellFilter(groups);
+          renderCellGroups(groups);
+          drawHistoryCharts(items);
+          renderHistoryTable(items);
+          updateHistoryRangeStatus();
+          document.getElementById("historyRangeStatus").classList.remove("error");
+        } catch (err) {
+          if (version !== historyRequestVersion || err.name === "AbortError") return;
+          if (background) {
+            console.warn("Background history refresh failed:", err.message || err);
+            return;
+          }
+          document.getElementById("historyRows").innerHTML =
+            `<tr><td colspan="8" class="error">Error fetching history: ${escapeHtml(err.message || err)}</td></tr>`;
+          document.getElementById("historyRangeStatus").classList.add("error");
+          document.getElementById("historyRangeStatus").textContent = "Historical data error";
+          showErrorPopup("History error", err.message || err);
+        } finally {
+          clearTimeout(timeoutId);
+          if (version === historyRequestVersion) {
+            historyController = null;
+            historyRequest = null;
+            historyRequestKey = null;
+            setHistoryLoading(false);
+          }
+        }
+      })();
+      return historyRequest;
     }
 
     function formatIntervalOption(intervalMs) {
@@ -2778,7 +2897,7 @@
         document.getElementById("raw").textContent =
           JSON.stringify(data.raw_signal, null, 2);
 
-        refreshHistory();
+        refreshHistory({ background: true });
 
       } catch (err) {
         clearLiveMetrics();
@@ -2807,6 +2926,9 @@
     document.getElementById("routerVendor").addEventListener("change", event => {
       selectedRouterVendor = event.target.value;
       selectedHistoryCellId = "";
+      selectedHistoryProfile = "";
+      currentCellGroups = [];
+      renderCellFilter([]);
       applyVendorIntervalPolicy();
       startRefreshTimer();
       refreshData();
@@ -2826,6 +2948,7 @@
     document.getElementById("savedProfileRouter").addEventListener("change", event => {
       loadSavedProfiles(event.target.value).catch(err => showErrorPopup("Saved profiles error", err.message || err));
     });
+    document.getElementById("savedProfileCellSelect").addEventListener("change", renderSavedSectorOptions);
     document.getElementById("savedProfileSelect").addEventListener("change", updateSavedProfileMeta);
     document.getElementById("refreshSavedProfiles").addEventListener("click", () => {
       loadSavedProfiles().catch(err => showErrorPopup("Saved profiles error", err.message || err));
@@ -2868,6 +2991,15 @@
 
     document.getElementById("historyCellFilter").addEventListener("change", event => {
       selectedHistoryCellId = event.target.value;
+      selectedHistoryProfile = "";
+      renderHistoryProfileFilter(currentCellGroups);
+      updateHistoryRangeStatus();
+      refreshHistory();
+    });
+
+    document.getElementById("historyProfileFilter").addEventListener("change", event => {
+      selectedHistoryProfile = event.target.value;
+      renderHistoryProfileFilter(currentCellGroups);
       updateHistoryRangeStatus();
       refreshHistory();
     });
@@ -2980,6 +3112,7 @@
       .catch(() => null)
       .then(() => {
         refreshData();
+        refreshHistory();
         startRefreshTimer();
       });
     refreshSpeedTest();
@@ -2987,8 +3120,10 @@
     updateHistoryRangeStatus();
     updateLanRangeStatus();
     updateSyncRangesButton();
-    refreshHistory();
-    window.addEventListener("resize", refreshHistory);
+    window.addEventListener("resize", () => {
+      drawHistoryCharts(currentHistoryItems);
+      drawLanCharts(currentSpeedTestItems);
+    });
   </script>
 </body>
 </html>
