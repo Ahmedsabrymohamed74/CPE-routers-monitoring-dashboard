@@ -23,6 +23,11 @@ Kubernetes architecture diagrams for this repository are generated from the loca
 
 ## Quick Deploy
 
+Dashboard access requires login. Before deploying an image with account support, configure
+`DASHBOARD_SECRET_KEY`, `DASHBOARD_ADMIN_USERNAME`, and `DASHBOARD_ADMIN_PASSWORD` in the existing
+Kubernetes Secret. See [Dashboard accounts](docs/authentication.md) for account requests, admin
+approval, password changes, and password recovery when the UI is unavailable.
+
 Create or decrypt the Secret first, then apply the app manifests:
 
 ```bash
@@ -84,6 +89,8 @@ Live router data is available from:
 ```
 
 ## Docs
+
+- [Dashboard accounts and recovery](docs/authentication.md)
 
 - `docs/deployment.md`
 - `docs/secrets.md`

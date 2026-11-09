@@ -946,16 +946,14 @@
       }
     }
   </style>
+  {% include 'theme_head.html' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='shell.css') }}">
 </head>
 
-<body>
+<body class="dashboard-page">
+  {% include 'navigation.html' %}
   <header class="topbar">
-    <div class="brand-logo" aria-label="CPE router dashboard">
-      <span class="brand-mark">CPE</span>
-      <span class="brand-name">Router Monitor</span>
-    </div>
-
-    <div class="app-title">CPE Router Dashboard</div>
+    <div class="page-context"><span class="eyebrow">Live network</span><h1>Dashboard</h1></div>
 
     <div class="toolbar">
       <div class="toolbar-field">
@@ -983,6 +981,7 @@
       </div>
 
       <div class="toolbar-actions">
+        <a class="icon-link" href="{{ url_for('auth.personalization') }}" title="Account settings" aria-label="Account settings">{% include 'icons/user-round.svg' %}</a>
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">&#9680;</button>
         <button class="manual-refresh" id="manualRefresh">Refresh now</button>
       </div>
@@ -1015,7 +1014,7 @@
 
           <div class="card">
             <div class="label">Cell/Tower Profile</div>
-            <button class="card-action" id="editCellTag" title="Add profile" aria-label="Add profile">+</button>
+            <button class="card-action" id="editCellTag" {% if not can('edit_profiles') %}disabled title="Operator or Admin access required"{% endif %} title="Add profile" aria-label="Add profile">+</button>
             <div class="value wide-value" id="cell_id">--</div>
             <div class="tooltip">The serving cell profile. When tagged, this shows the custom tower label with the Cell ID in brackets.</div>
           </div>
@@ -1086,7 +1085,7 @@
         </div>
 
         <div class="speedtest-actions">
-          <button class="speedtest-run" id="runSpeedTest">Run speed test</button>
+          <button class="speedtest-run" id="runSpeedTest" {% if not can('run_speedtest') %}disabled title="Operator or Admin access required"{% endif %}>Run speed test</button>
           <span class="history-range-status" id="speedtestStatus">No speed test loaded</span>
           <div class="speedtest-note">Note: speed test results are measured from the VM/pod running the dashboard, not from this browser device.</div>
         </div>
@@ -1404,6 +1403,22 @@
   </div>
 
   <script>
+    const dashboardCsrfToken = {{ csrf_token() | tojson }};
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input, options = {}) => {
+      const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+      const method = (options.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
+      if (url.origin === window.location.origin && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+        const headers = new Headers(options.headers || (input instanceof Request ? input.headers : undefined));
+        headers.set("X-CSRF-Token", dashboardCsrfToken);
+        options = { ...options, headers };
+      }
+      const response = await originalFetch(input, options);
+      if (url.origin === window.location.origin && response.status === 401) {
+        window.location.assign({{ url_for('auth.login') | tojson }});
+      }
+      return response;
+    };
     const HUAWEI_FIXED_INTERVAL_MS = 3000;
     let configuredLiveFetchIntervalMs = 15000;
     let refreshIntervalMs = configuredLiveFetchIntervalMs;
@@ -1415,7 +1430,7 @@
     let customLanRange = null;
     let syncRangesEnabled = false;
     let selectedRouterVendor = "huawei";
-    let currentTheme = localStorage.getItem("dashboardTheme") || "dark";
+    let currentTheme = window.CPETheme.current.mode;
     let refreshTimer = null;
     let isFetching = false;
     let currentHistoryItems = [];
@@ -1513,8 +1528,7 @@
 
     function applyTheme(theme) {
       currentTheme = theme === "light" ? "light" : "dark";
-      document.body.classList.toggle("light-theme", currentTheme === "light");
-      localStorage.setItem("dashboardTheme", currentTheme);
+      window.CPETheme.apply({ mode: currentTheme });
       const themeToggle = document.getElementById("themeToggle");
       themeToggle.innerHTML = currentTheme === "light" ? "&#9728;" : "&#9680;";
       themeToggle.title = currentTheme === "light" ? "Switch to dark mode" : "Switch to light mode";
@@ -1523,6 +1537,7 @@
 
     function toggleTheme() {
       applyTheme(currentTheme === "light" ? "dark" : "light");
+      window.CPETheme.save().catch(err => showErrorPopup("Appearance error", err.message));
       drawHistoryCharts(currentHistoryItems);
       drawLanCharts(currentSpeedTestItems);
     }
@@ -2245,24 +2260,15 @@
     }
 
     function chartTheme() {
-      if (currentTheme === "light") {
-        return {
-          background: "#ffffff",
-          axis: "#9ca3af",
-          grid: "#e5e7eb",
-          label: "#4b5563",
-          marker: "#374151",
-          point: "#111827",
-        };
-      }
-
+      const styles = getComputedStyle(document.documentElement);
+      const color = key => styles.getPropertyValue(key).trim();
       return {
-        background: "#030712",
-        axis: "#4b5563",
-        grid: "#374151",
-        label: "#9ca3af",
-        marker: "#d1d5db",
-        point: "#e5e7eb",
+        background: color("--chart"),
+        axis: color("--border"),
+        grid: color("--grid"),
+        label: color("--muted"),
+        marker: color("--text"),
+        point: color("--text"),
       };
     }
 
@@ -3120,6 +3126,11 @@
     updateHistoryRangeStatus();
     updateLanRangeStatus();
     updateSyncRangesButton();
+    window.addEventListener('cpe-theme-change', () => {
+      currentTheme = window.CPETheme.current.mode;
+      drawHistoryCharts(currentHistoryItems);
+      drawLanCharts(currentSpeedTestItems);
+    });
     window.addEventListener("resize", () => {
       drawHistoryCharts(currentHistoryItems);
       drawLanCharts(currentSpeedTestItems);

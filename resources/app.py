@@ -3,8 +3,9 @@ import time
 import threading
 from threading import Lock
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 
+from auth import init_auth
 from router_clients import create_router_client
 
 try:
@@ -134,6 +135,7 @@ if ROUTER_VENDOR == "zte" and not (ZTE_ROUTER_PASSWORD or ZTE_SESSION_COOKIE):
 
 
 app = Flask(__name__)
+init_auth(app)
 
 routers = {
     "huawei": create_router_client(
@@ -461,26 +463,22 @@ def start_speedtest_scheduler_if_enabled():
 # --------------------
 @app.route("/")
 def index():
-    return render_template("index.html")
+    from auth import store
+    landing = store.site_settings().get('landing_page', 'home')
+    from access import LANDING_PAGES
+    if landing not in LANDING_PAGES:
+        landing = 'home'
+    return redirect(url_for('dashboard' if landing == 'dashboard' else 'portal.' + landing))
+
+
+@app.get('/dashboard')
+def dashboard():
+    return render_template('index.html', page='dashboard')
 
 
 @app.route("/health")
 def health():
-    return jsonify({
-        "status": "ok",
-        "router_vendor": ROUTER_VENDOR,
-        "router_url": routers[ROUTER_VENDOR].router_url,
-        "historical_enabled": ENABLE_HISTORICAL,
-        "historical_poll_interval_seconds": POLL_INTERVAL_SECONDS,
-        "historical_retention_days": HISTORICAL_RETENTION_DAYS,
-        "live_fetch_interval_seconds": LIVE_FETCH_INTERVAL_SECONDS,
-        "default_cellular_history_range": DEFAULT_CELLULAR_HISTORY_RANGE,
-        "db_config_available": db_config_available(),
-        "speedtest_enabled": SPEEDTEST_ENABLED,
-        "speedtest_schedule_enabled": SPEEDTEST_SCHEDULE_ENABLED,
-        "speedtest_interval_seconds": SPEEDTEST_INTERVAL_SECONDS,
-        "speedtest_server_location": SPEEDTEST_SERVER_LOCATION,
-    })
+    return jsonify({"status": "ok"})
 
 
 @app.route("/api/routers")
@@ -702,6 +700,9 @@ def speedtest_run():
             "message": str(exc),
         }), 500
 
+
+from portal import init_portal
+init_portal(app, routers, fetch_history, ensure_db_initialized, router_lock)
 
 # --------------------
 # Main

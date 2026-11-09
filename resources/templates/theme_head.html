@@ -1,0 +1,11 @@
+<script>
+  window.CPE_THEME_CONFIG = {
+    preferences: {{ theme_preferences | tojson }},
+    themes: {{ theme_options | tojson }},
+    authenticated: {{ (g.current_user is not none) | tojson }},
+    csrf: {{ csrf_token() | tojson }},
+    saveUrl: {{ url_for('auth.save_preferences') | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='theme.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">

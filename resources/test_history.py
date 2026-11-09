@@ -109,7 +109,7 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(payload['tac'], '20')
 
     def test_dashboard_renders_and_history_respects_configured_auth(self):
-        response = self.client.get('/')
+        response = self.client.get('/dashboard')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'id="historyProfileFilter"', response.data)
         self.assertIn(b'id="historyLoading"', response.data)

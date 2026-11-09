@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 .env
+admin-password.txt
+*.password
 venv/
 .venv/
 *.log
