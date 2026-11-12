@@ -1,5 +1,6 @@
 """Focused tests for alert rules, shared event state and custom-role/user administration."""
 import os
+import secrets
 import unittest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
@@ -52,6 +53,7 @@ class SettingsTests(unittest.TestCase):
     account=test_portal.PortalTests.account
 
     def setUp(self):
+        self.generated_password = secrets.token_urlsafe(24)
         test_auth.AuthenticationTests.setUp(self)
         with self.store.transaction() as cur:
             cur.execute("DELETE FROM dashboard_roles WHERE builtin=FALSE")
@@ -90,11 +92,11 @@ class SettingsTests(unittest.TestCase):
         response=self.client.post('/settings/roles',data=MultiDict([('csrf_token',self.csrf),('label','Signal Analyst'),('permissions','manage_alerts')]))
         self.assertEqual(response.status_code,303)
         role='signal-analyst';self.assertIn(role,self.store.role_catalog())
-        response=self.client.post('/settings/users',data={'csrf_token':self.csrf,'username':'analyst','full_name':'Signal Analyst','email':'','password':'Analyst-test-password-123','confirm_password':'Analyst-test-password-123','role':role})
+        response=self.client.post('/settings/users',data={'csrf_token':self.csrf,'username':'analyst','full_name':'Signal Analyst','email':'','password':self.generated_password,'confirm_password':self.generated_password,'role':role})
         self.assertEqual(response.status_code,303)
         user=self.store.by_username('analyst');self.assertEqual(user['status'],'active');self.assertEqual(user['role'],role)
-        self.assertNotEqual(user['password_hash'],'Analyst-test-password-123')
-        client=self.app.test_client();self.assertEqual(self.login(client,'analyst','Analyst-test-password-123').status_code,302)
+        self.assertNotEqual(user['password_hash'],self.generated_password)
+        client=self.app.test_client();self.assertEqual(self.login(client,'analyst',self.generated_password).status_code,302)
         self.assertEqual(client.get('/alerts/configure').status_code,200)
         self.assertIn(b'Signal Analyst',client.get('/home').data)
         self.assertEqual(client.post('/api/actions/restart-router',json={'vendor':'huawei','confirmation':'RESTART'},headers={'X-CSRF-Token':self.token(client,'/account')}).status_code,403)
@@ -133,7 +135,7 @@ class SettingsTests(unittest.TestCase):
 
     def test_create_user_validation_does_not_replace_existing_account(self):
         admin=self.store.by_username('admin')
-        with self.assertRaises(ValueError):self.store.create_user('admin','Changed','','Valid-test-password-123','viewer',admin['id'])
+        with self.assertRaises(ValueError):self.store.create_user('admin','Changed','',self.generated_password,'viewer',admin['id'])
         with self.assertRaises(ValueError):self.store.create_user('new-user','New','','short','viewer',admin['id'])
-        with self.assertRaises(ValueError):self.store.create_user('new-user','New','','Valid-test-password-123','made-up',admin['id'])
+        with self.assertRaises(ValueError):self.store.create_user('new-user','New','',self.generated_password,'made-up',admin['id'])
         self.assertEqual(self.store.by_username('admin')['password_hash'],admin['password_hash'])
