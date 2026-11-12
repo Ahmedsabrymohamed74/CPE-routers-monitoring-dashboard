@@ -408,8 +408,15 @@ def historical_poller():
                 inserted = 0
                 for vendor in history_poll_vendors():
                     try:
+                        from datetime import datetime, timezone
+                        observed_at = datetime.now(timezone.utc)
                         data = build_cellular_payload(vendor)
                         insert_metric(data)
+                        try:
+                            from auth import store
+                            store.evaluate_alert_sample(data, observed_at)
+                        except Exception as alert_error:
+                            app.logger.warning("Alert evaluation failed: vendor=%s exception=%s", vendor, type(alert_error).__name__)
                         inserted += 1
                         print(f"[*] Historical metric inserted vendor={vendor}", flush=True)
                     except Exception as exc:

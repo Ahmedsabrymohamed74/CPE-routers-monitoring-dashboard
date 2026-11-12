@@ -5,7 +5,7 @@
   </a>
   <div class="app-menu">
     {% for key, label, icon, endpoint in [('dashboard','Dashboard','▦','dashboard'), ('alerts','Alerts','◉','portal.alerts'), ('settings','Settings','⚙','portal.settings'), ('actions','Actions','↗','portal.actions')] %}
-    <a href="{{ url_for(endpoint) }}" {% if page == key or (key == 'settings' and request.endpoint.startswith('auth.')) %}aria-current="page"{% endif %}><span aria-hidden="true">{{ icon }}</span>{{ label }}</a>
+    <a href="{{ url_for(endpoint) }}" {% if page == key or (key == 'alerts' and page in ['alert_rules', 'notifications']) or (key == 'settings' and request.endpoint.startswith('auth.')) %}aria-current="page"{% endif %}><span aria-hidden="true">{{ icon }}</span>{{ label }}</a>
     {% endfor %}
   </div>
   <div class="app-user">

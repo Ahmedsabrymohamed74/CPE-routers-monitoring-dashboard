@@ -1,4 +1,41 @@
 (() => {
+  const conditionList = document.getElementById('signalConditions');
+  const addCondition = document.getElementById('addSignalCondition');
+  function configureCondition(row) {
+    const metric = row.querySelector('[name=condition_metric]');
+    const value = row.querySelector('[name=condition_value]');
+    const enabled = row.querySelector('[name=condition_enabled]');
+    const update = () => {
+      const option = metric.selectedOptions[0];
+      value.min = option.dataset.min;
+      value.max = option.dataset.max;
+      value.required = enabled.checked;
+      row.querySelector('.condition-unit').textContent = option.dataset.unit;
+    };
+    metric.addEventListener('change', update);
+    enabled.addEventListener('change', update);
+    row.querySelector('[data-remove-condition]').addEventListener('click', () => {
+      row.remove(); addCondition.disabled = false;
+    });
+    update();
+  }
+  conditionList?.querySelectorAll('[data-condition]').forEach(configureCondition);
+  if (addCondition) addCondition.disabled = conditionList.children.length >= 32;
+  addCondition?.addEventListener('click', () => {
+    if (conditionList.children.length >= 32) return;
+    const key = window.crypto.randomUUID?.() || ('condition-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+    const template = document.getElementById('signalConditionTemplate');
+    const row = template.content.firstElementChild.cloneNode(true);
+    row.querySelector('[name=condition_id]').value = key;
+    row.querySelector('[name=condition_enabled]').value = key;
+    configureCondition(row); conditionList.append(row);
+    addCondition.disabled = conditionList.children.length >= 32;
+  });
+  document.querySelectorAll('form[data-confirm]').forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
   document.querySelectorAll('time[datetime]').forEach(node => {
     const value = new Date(node.dateTime);
     if (!Number.isNaN(value.getTime())) node.textContent = value.toLocaleString();

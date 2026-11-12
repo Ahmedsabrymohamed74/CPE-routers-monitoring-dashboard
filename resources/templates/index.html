@@ -1170,6 +1170,8 @@
             <option value="15">15m</option>
             <option value="30">30m</option>
             <option value="60" selected>1h</option>
+            <option value="120">2h</option>
+            <option value="180">3h</option>
             <option value="360">6h</option>
             <option value="1440">24h</option>
             <option value="4320">3d</option>
@@ -1459,6 +1461,10 @@
     let isoRegions = [];
     let lastErrorMessage = null;
 
+    function chartColor(token) {
+      return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || '#338ae8';
+    }
+
     const historyMetrics = [
       {
         canvasId: "historyChartRsrp",
@@ -1466,7 +1472,7 @@
         key: "rsrp",
         title: "RSRP",
         unit: "dBm",
-        color: "#60a5fa",
+        get color() { return chartColor("--secondary"); },
       },
       {
         canvasId: "historyChartRsrq",
@@ -1474,7 +1480,7 @@
         key: "rsrq",
         title: "RSRQ",
         unit: "dB",
-        color: "#34d399",
+        get color() { return chartColor("--link"); },
       },
       {
         canvasId: "historyChartSinr",
@@ -1482,7 +1488,7 @@
         key: "sinr",
         title: "SINR",
         unit: "dB",
-        color: "#fbbf24",
+        get color() { return chartColor("--highlight"); },
       },
     ];
 
@@ -1501,7 +1507,7 @@
         key: "latency_ms",
         title: "Latency",
         unit: "ms",
-        color: "#a78bfa",
+        get color() { return chartColor("--link"); },
       },
       {
         canvasId: "lanChartDownload",
@@ -1509,7 +1515,7 @@
         key: "download_mbps",
         title: "Download",
         unit: "Mbps",
-        color: "#22c55e",
+        get color() { return chartColor("--secondary"); },
       },
       {
         canvasId: "lanChartUpload",
@@ -1517,7 +1523,7 @@
         key: "upload_mbps",
         title: "Upload",
         unit: "Mbps",
-        color: "#fb7185",
+        get color() { return chartColor("--highlight"); },
       },
     ];
 

@@ -54,8 +54,8 @@ def init_auth(app):
         preferences = user.get("preferences") if user else None
         return {"theme_options": THEMES, "theme_preferences": preferences if valid_preferences(preferences) else None,
                 "site": store.site_settings() if user else DEFAULT_SITE,
-                "role_label": ROLES.get(effective_role(user['role']), 'Viewer') if user else '',
-                "can": lambda permission: bool(user and allowed(user['role'], permission))}
+                "role_label": g.role_catalog.get(effective_role(user['role']), {}).get('label', 'Viewer') if user else '',
+                "can": lambda permission: bool(user and permission in g.role_permissions)}
 
     @app.before_request
     def protect_dashboard():
@@ -71,6 +71,8 @@ def init_auth(app):
             if account_id is not None:
                 account = store.by_id(account_id)
                 if account and account["status"] == "active" and account["session_version"] == session.get("version"):
+                    g.role_catalog = store.role_catalog()
+                    g.role_permissions = store.role_permissions(account["role"], g.role_catalog)
                     g.current_user = account
                 else:
                     session.clear()
@@ -84,12 +86,13 @@ def init_auth(app):
                 return error_response("Please log in to continue.", 401)
             return redirect(url_for("auth.login"))
         if request.endpoint in {"auth.admin_requests", "auth.review_request", "portal.set_role",
-                                "portal.save_site_settings", "portal.restart_router"}:
+                                "portal.save_site_settings", "portal.restart_router", "portal.create_user",
+                                "portal.create_role", "portal.update_role"}:
             if g.current_user["role"] != "admin":
                 return error_response("Administrator access is required.", 403)
-        permission = {'save_cell_tag': 'edit_profiles', 'speedtest_run': 'run_speedtest'}.get(request.endpoint)
-        if permission and not allowed(g.current_user['role'], permission):
-            return error_response('This action requires an Operator or Admin account.', 403)
+        permission = {'save_cell_tag': 'edit_profiles', 'speedtest_run': 'run_speedtest', 'portal.configure_alerts': 'manage_alerts', 'portal.save_alerts': 'manage_alerts', 'portal.edit_alert': 'manage_alerts', 'portal.update_alert': 'manage_alerts', 'portal.delete_alert': 'manage_alerts'}.get(request.endpoint)
+        if permission and permission not in g.role_permissions:
+            return error_response('Your role does not permit this action.', 403)
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
             token = request.headers.get("X-CSRF-Token") or request.form.get("csrf_token", "")
             expected = session.get("csrf_token", "")

@@ -58,7 +58,7 @@ requester's identity before approving. Duplicate usernames do not replace existi
 Rejected requests remain stored and cannot log in or be resubmitted under the same username.
 
 Viewer accounts can read metrics, alerts and action history, and change their own password and appearance.
-Operator accounts can also edit cell profiles and run speed tests. Existing legacy `user` accounts
+Operator accounts can also edit cell profiles, run speed tests, and configure alert rules. Existing legacy `user` accounts
 retain Operator permissions. New requests default to Viewer. Admin accounts additionally approve
 requests, manage roles/site settings, and restart routers. These checks are enforced by the server.
 
@@ -144,13 +144,17 @@ The logo opens `/`, which redirects to the configured landing page. The menu is 
 Alerts, Settings, Actions. Admins can choose Home, Dashboard, Alerts, Settings or Actions in
 **Settings → Site & landing page**, and edit the site name and Home introduction. Settings are
 shared across replicas in `dashboard_site_settings`. `/dashboard` retains the charts and filters.
-Alerts derive from the latest stored metrics: RSRP/SINR thresholds, samples older than 15 minutes,
-and recent failed/uncertain restart requests. They refresh when the page is opened or refreshed.
+Alert settings live under **Alerts → Configure alerts**, separately from site settings. See
+[Configurable alerts](alerts.md) for all signal thresholds and cell/tower profile changes.
 
 ## Users and router actions
 
-Admins assign Viewer, Operator or Admin under **Settings → Users & roles** after approving a
-request. Changing a role revokes that account's existing sessions; the last active admin cannot
+Admins assign roles under **Settings → Users** after approving a request, or create an active
+account directly using **Add user**. Passwords are hashed before storage. The built-in roles are
+Viewer, Operator and Admin. **Settings → Roles & permissions → Add role** creates a custom role
+with read access plus optional profile editing, speed tests and alert configuration. Custom roles
+cannot receive user/site administration or router-restart privileges. Editing custom permissions
+revokes sessions for users assigned to that role. Changing a role revokes that account's existing sessions; the last active admin cannot
 be demoted. New roles preserve existing account data and passwords.
 
 **Actions → Restart router** is available only to admins. Choose the router and type `RESTART`

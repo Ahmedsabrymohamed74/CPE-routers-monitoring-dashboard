@@ -1,5 +1,6 @@
 :root {
   --accent: #7b3dd9; --accent-hover: #6530bb; --accent-ink: #fff;
+  --title: var(--link);
   --link: #b9a0ff; --secondary: #338ae8; --highlight: #ff9d00;
   --bg: #10101b; --surface: #191929; --raised: #222238;
   --input: #131320; --text: #f0eff8; --muted: #b3b0c7;
