@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ {'login': 'Login', 'request': 'Request an account', 'account': 'Account Settings', 'personalization': 'Personalization', 'admin': 'Account requests'}.get(mode, 'Account service') }} | CPE Router Dashboard</title>
+  {% include 'theme_head.html' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='shell.css') }}">
+</head>
+<body class="auth-page">
+  {% if g.current_user %}{% set page = 'settings' %}{% include 'navigation.html' %}{% else %}
+  <header>
+    <a class="brand" href="{{ url_for('index') }}"><span class="mark">CPE</span><span>CPE Router Dashboard</span></a>
+    <nav class="header-nav" aria-label="Account navigation">
+      {% if g.current_user %}
+      <a href="{{ url_for('index') }}">Dashboard</a>
+      <a class="icon-link" href="{{ url_for('auth.personalization') }}" title="Account settings" aria-label="Account settings">{% include 'icons/user-round.svg' %}</a>
+      {% endif %}
+      <button class="appearance-toggle" type="button" data-theme-toggle title="Switch to light mode" aria-label="Switch to light mode"><span class="theme-sun" aria-hidden="true">&#9728;</span><span class="theme-moon" aria-hidden="true">&#9680;</span></button>
+      {% if g.current_user %}
+      <form class="header-logout" method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="secondary" type="submit">Log out</button>
+      </form>
+      {% endif %}
+    </nav>
+  </header>
+  {% endif %}
+  {% set settings_page = mode in ['personalization', 'account', 'admin'] %}
+  <div class="{{ 'settings-layout' if settings_page else 'auth-layout' }}">
+  {% if settings_page %}
+  <aside class="settings-sidebar">
+    <nav aria-label="Settings"><a href="{{ url_for('portal.settings') }}">Settings overview</a>
+      <a href="{{ url_for('auth.personalization') }}" {% if mode == 'personalization' %}aria-current="page"{% endif %}>Personalization</a>
+      <a href="{{ url_for('auth.account') }}" {% if mode == 'account' %}aria-current="page"{% endif %}>Account Settings</a>
+      {% if g.current_user.role == 'admin' %}<a href="{{ url_for('auth.admin_requests') }}" {% if mode == 'admin' %}aria-current="page"{% endif %}>Account Requests</a>{% endif %}
+    </nav>
+  </aside>
+  {% endif %}
+  <main>
+    <div class="notice error" id="themeSaveStatus" role="alert" hidden></div>
+    {% for message in get_flashed_messages() %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
+    {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+    {% if mode == 'login' %}
+      <h1>Log in</h1>
+      <form method="post" action="{{ url_for('auth.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="username">Username</label><input id="username" name="username" autocomplete="username" required maxlength="64" autofocus>
+        <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+        <button class="submit" type="submit">Log in</button>
+      </form>
+      <div class="switch"><a class="button secondary" href="{{ url_for('auth.request_account') }}">Request an account</a></div>
+    {% elif mode == 'request' %}
+      <h1>Request an account</h1>
+      <form method="post" action="{{ url_for('auth.request_account') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="full_name">Full name</label><input id="full_name" name="full_name" autocomplete="name" maxlength="120" required value="{{ request.form.get('full_name', '') }}">
+        <label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required value="{{ request.form.get('email', '') }}">
+        <label for="username">Username</label><input id="username" name="username" autocomplete="username" minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_.\-]{2,63}" required value="{{ request.form.get('username', '') }}">
+        <label for="reason">Request note (optional)</label><textarea id="reason" name="reason" maxlength="1000">{{ request.form.get('reason', '') }}</textarea>
+        <label for="password">Password (12-128 characters)</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <label for="confirm_password">Confirm password</label><input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <button class="submit" type="submit">Submit request</button>
+      </form>
+      <div class="switch"><a href="{{ url_for('auth.login') }}">Back to login</a></div>
+    {% elif mode == 'personalization' %}
+      <h1>Personalization</h1>
+      <form class="settings-form" method="post" action="{{ url_for('auth.personalization') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="appearanceMode">Appearance</label>
+        <select id="appearanceMode" name="mode"><option value="dark">Dark</option><option value="light">Light</option></select>
+        <section class="settings-section">
+          <h2>Color scheme</h2>
+          <label for="colorScheme">Theme</label>
+          <select id="colorScheme" name="scheme">
+            {% for theme in theme_options %}<option value="{{ theme.id }}">{{ theme.name }}</option>{% endfor %}
+          </select>
+          <div class="scheme-swatches" id="themeSwatches" aria-label="Selected theme colors"></div>
+        </section>
+        <button class="submit" type="submit">Save appearance</button>
+      </form>
+    {% elif mode == 'account' %}
+      <h1>Account Settings</h1>
+      <p>{{ g.current_user.full_name }} <span class="muted">({{ g.current_user.username }})</span></p>
+      <h2>Change password</h2>
+      <form class="settings-form" method="post" action="{{ url_for('auth.account') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="current_password">Current password</label><input id="current_password" name="current_password" type="password" autocomplete="current-password" required maxlength="128">
+        <label for="password">New password (12-128 characters)</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <label for="confirm_password">Confirm new password</label><input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+        <button class="submit" type="submit">Change password</button>
+      </form>
+    {% elif mode == 'admin' %}
+      <h1>Account requests</h1>
+      {% for item in account_requests %}
+      <article class="request">
+        <div>
+          <h2>{{ item.full_name }} <span class="muted">({{ item.username }})</span></h2>
+          <p>{{ item.email }}</p>
+          <p class="muted">Requested {{ item.created_at.strftime('%Y-%m-%d %H:%M %Z') }}</p>
+          {% if item.reason %}<p>{{ item.reason }}</p>{% endif %}
+        </div>
+        <form class="actions" method="post" action="{{ url_for('auth.review_request', account_id=item.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button name="decision" value="approve" type="submit">Approve</button>
+          <button class="danger" name="decision" value="reject" type="submit">Reject</button>
+        </form>
+      </article>
+      {% else %}<p class="muted">No pending account requests.</p>{% endfor %}
+    {% else %}
+      <h1>Unable to continue</h1>
+      <a href="{{ url_for('auth.login') }}">Return to login</a>
+    {% endif %}
+  </main>
+  </div>
+</body>
+</html>

@@ -3,8 +3,9 @@ import time
 import threading
 from threading import Lock
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 
+from auth import init_auth
 from router_clients import create_router_client
 
 try:
@@ -91,6 +92,8 @@ POLL_INTERVAL_SECONDS = max(
 )
 ENABLE_HISTORICAL = env_bool("HISTORICAL_ENABLED", True, aliases=("ENABLE_HISTORICAL",))
 HISTORICAL_RETENTION_DAYS = env_int("HISTORICAL_RETENTION_DAYS", 7)
+LIVE_FETCH_INTERVAL_SECONDS = max(1, env_int("LIVE_FETCH_INTERVAL_SECONDS", 15))
+DEFAULT_CELLULAR_HISTORY_RANGE = env_value("DEFAULT_CELLULAR_HISTORY_RANGE", "60").strip().lower()
 
 SPEEDTEST_ENABLED = env_bool("SPEEDTEST_ENABLED", True)
 SPEEDTEST_SCHEDULE_ENABLED = env_bool("SPEEDTEST_SCHEDULE_ENABLED", False)
@@ -132,6 +135,7 @@ if ROUTER_VENDOR == "zte" and not (ZTE_ROUTER_PASSWORD or ZTE_SESSION_COOKIE):
 
 
 app = Flask(__name__)
+init_auth(app)
 
 routers = {
     "huawei": create_router_client(
@@ -231,6 +235,15 @@ def get_router(vendor=None):
     return normalized_vendor, router_client
 
 
+def history_poll_vendors():
+    vendors = []
+    if HUAWEI_ROUTER_PASSWORD:
+        vendors.append("huawei")
+    if ZTE_ROUTER_PASSWORD or ZTE_SESSION_COOKIE:
+        vendors.append("zte")
+    return vendors or [configured_router_vendor()]
+
+
 def build_cellular_payload(vendor=None):
     """
     Fetch live signal data from the router and normalize it into the dashboard/API format.
@@ -247,6 +260,8 @@ def build_cellular_payload(vendor=None):
 
 def apply_cell_tag(payload):
     cell_id = payload.get("cell_id")
+    pci = payload.get("pci")
+    router_vendor = payload.get("router_vendor")
     payload["cell_tag"] = None
     payload["cell_tag_router_vendor"] = None
     payload["cell_profile"] = None
@@ -262,7 +277,7 @@ def apply_cell_tag(payload):
 
     try:
         ensure_db_initialized()
-        tags = fetch_cell_tags([cell_id])
+        tags = fetch_cell_tags([cell_id], pci=pci, router_vendor=router_vendor)
     except Exception as exc:
         print(f"[!] Cell tag lookup error for cell_id={cell_id!r}: {exc}", flush=True)
         return payload
@@ -389,12 +404,24 @@ def historical_poller():
                 db_ready = db_initialized
                 print("[*] Historical database initialized", flush=True)
 
-            data = build_cellular_payload()
-
             if insert_metric:
-                insert_metric(data)
-                print("[*] Historical metric inserted", flush=True)
-                if prune_metrics and HISTORICAL_RETENTION_DAYS > 0:
+                inserted = 0
+                for vendor in history_poll_vendors():
+                    try:
+                        from datetime import datetime, timezone
+                        observed_at = datetime.now(timezone.utc)
+                        data = build_cellular_payload(vendor)
+                        insert_metric(data)
+                        try:
+                            from auth import store
+                            store.evaluate_alert_sample(data, observed_at)
+                        except Exception as alert_error:
+                            app.logger.warning("Alert evaluation failed: vendor=%s exception=%s", vendor, type(alert_error).__name__)
+                        inserted += 1
+                        print(f"[*] Historical metric inserted vendor={vendor}", flush=True)
+                    except Exception as exc:
+                        print(f"[!] Historical metric skipped vendor={vendor}: {exc}", flush=True)
+                if inserted and prune_metrics and HISTORICAL_RETENTION_DAYS > 0:
                     prune_metrics(HISTORICAL_RETENTION_DAYS)
             else:
                 print("[!] insert_metric unavailable; historical insert skipped", flush=True)
@@ -443,24 +470,22 @@ def start_speedtest_scheduler_if_enabled():
 # --------------------
 @app.route("/")
 def index():
-    return render_template("index.html")
+    from auth import store
+    landing = store.site_settings().get('landing_page', 'home')
+    from access import LANDING_PAGES
+    if landing not in LANDING_PAGES:
+        landing = 'home'
+    return redirect(url_for('dashboard' if landing == 'dashboard' else 'portal.' + landing))
+
+
+@app.get('/dashboard')
+def dashboard():
+    return render_template('index.html', page='dashboard')
 
 
 @app.route("/health")
 def health():
-    return jsonify({
-        "status": "ok",
-        "router_vendor": ROUTER_VENDOR,
-        "router_url": routers[ROUTER_VENDOR].router_url,
-        "historical_enabled": ENABLE_HISTORICAL,
-        "historical_poll_interval_seconds": POLL_INTERVAL_SECONDS,
-        "historical_retention_days": HISTORICAL_RETENTION_DAYS,
-        "db_config_available": db_config_available(),
-        "speedtest_enabled": SPEEDTEST_ENABLED,
-        "speedtest_schedule_enabled": SPEEDTEST_SCHEDULE_ENABLED,
-        "speedtest_interval_seconds": SPEEDTEST_INTERVAL_SECONDS,
-        "speedtest_server_location": SPEEDTEST_SERVER_LOCATION,
-    })
+    return jsonify({"status": "ok"})
 
 
 @app.route("/api/routers")
@@ -468,6 +493,8 @@ def router_list():
     return jsonify({
         "default_vendor": configured_router_vendor(),
         "switch_enabled": True,
+        "live_fetch_interval_seconds": LIVE_FETCH_INTERVAL_SECONDS,
+        "default_cellular_history_range": DEFAULT_CELLULAR_HISTORY_RANGE,
         "routers": [
             {
                 "vendor": "huawei",
@@ -518,8 +545,10 @@ def cell_tags():
     try:
         ensure_db_initialized()
         cell_id = request.args.get("cell_id")
+        pci = request.args.get("pci")
+        router_vendor = request.args.get("router_vendor")
         cell_ids = [cell_id] if cell_id else None
-        return jsonify({"items": fetch_cell_tags(cell_ids)})
+        return jsonify({"items": fetch_cell_tags(cell_ids, pci=pci, router_vendor=router_vendor)})
     except Exception as exc:
         print(f"[!] Cell tag fetch error: {exc}", flush=True)
         return jsonify({
@@ -535,6 +564,7 @@ def save_cell_tag():
 
     payload = request.get_json(silent=True) or {}
     cell_id = str(payload.get("cell_id") or "").strip()
+    pci = str(payload.get("pci") or "").strip()
     iso_region_code = str(payload.get("iso_region_code") or "").strip()
     custom_label = str(payload.get("custom_label") or "").strip()
     router_vendor = str(payload.get("router_vendor") or "").strip().lower()
@@ -553,6 +583,7 @@ def save_cell_tag():
         ensure_db_initialized()
         upsert_cell_tag(
             cell_id=cell_id,
+            pci=pci,
             iso_region_code=iso_region_code,
             custom_label=custom_label or None,
             router_vendor=router_vendor,
@@ -563,7 +594,7 @@ def save_cell_tag():
             profile_cqi0=clean_value(payload.get("profile_cqi0")),
             custom_fields=custom_fields,
         )
-        items = fetch_cell_tags([cell_id]) if fetch_cell_tags else []
+        items = fetch_cell_tags([cell_id], pci=pci, router_vendor=router_vendor) if fetch_cell_tags else []
         return jsonify({"saved": True, "item": items[0] if items else None})
     except Exception as exc:
         print(f"[!] Cell tag save error: {exc}", flush=True)
@@ -584,6 +615,11 @@ def history():
         start = request.args.get("start")
         end = request.args.get("end")
         cell_id = request.args.get("cell_id")
+        sector_filters = {key: request.args.get(key) for key in ("pci", "enodeb_id", "tac")}
+        latest = str(request.args.get("latest") or "").strip().lower() in {"1", "true", "yes", "on"}
+        vendor = (request.args.get("vendor") or configured_router_vendor()).strip().lower()
+        if vendor not in routers:
+            return jsonify({"error": True, "message": f"Unsupported router vendor: {vendor}"}), 400
         ensure_db_initialized()
         return jsonify({
             "minutes": int(minutes),
@@ -591,17 +627,23 @@ def history():
             "start": start,
             "end": end,
             "cell_id": cell_id,
+            **sector_filters,
+            "router_vendor": vendor,
             "items": fetch_history(
                 minutes=minutes,
                 limit=limit,
                 start=start,
                 end=end,
                 cell_id=cell_id,
+                router_vendor=vendor,
+                latest=latest,
+                **sector_filters,
             ),
             "cell_groups": fetch_history_cell_groups(
                 minutes=minutes,
                 start=start,
                 end=end,
+                router_vendor=vendor,
             ) if fetch_history_cell_groups else [],
         })
     except Exception as exc:
@@ -665,6 +707,9 @@ def speedtest_run():
             "message": str(exc),
         }), 500
 
+
+from portal import init_portal
+init_portal(app, routers, fetch_history, ensure_db_initialized, router_lock)
 
 # --------------------
 # Main

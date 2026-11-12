@@ -5,6 +5,9 @@ class BaseRouterClient:
         self.router_url = router_url.rstrip("/")
         self.router_name = router_name or self.vendor.title()
 
+    def restart(self):
+        raise NotImplementedError("Router restart is not supported by this adapter")
+
     def get_signal(self):
         raise NotImplementedError
 

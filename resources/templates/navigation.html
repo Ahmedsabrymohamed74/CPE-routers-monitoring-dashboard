@@ -1,0 +1,17 @@
+<nav class="app-nav" aria-label="Main navigation">
+  <a class="app-brand" href="{{ url_for('index') }}" aria-label="{{ site.title }} — landing page">
+    <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="currentColor" opacity=".15"/><path d="M8 22h16M11 18v-4m5 4V9m5 9v-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="8" r="3" fill="currentColor"/></svg>
+    <span>{{ site.title }}<small>NETWORK OBSERVABILITY</small></span>
+  </a>
+  <div class="app-menu">
+    {% for key, label, icon, endpoint in [('dashboard','Dashboard','▦','dashboard'), ('alerts','Alerts','◉','portal.alerts'), ('settings','Settings','⚙','portal.settings'), ('actions','Actions','↗','portal.actions')] %}
+    <a href="{{ url_for(endpoint) }}" {% if page == key or (key == 'alerts' and page in ['alert_rules', 'notifications']) or (key == 'settings' and request.endpoint.startswith('auth.')) %}aria-current="page"{% endif %}><span aria-hidden="true">{{ icon }}</span>{{ label }}</a>
+    {% endfor %}
+  </div>
+  <div class="app-user">
+    <span class="role-badge">{{ role_label }}</span>
+    <a class="app-account" href="{{ url_for('auth.account') }}">{{ g.current_user.username }}</a>
+    <button class="nav-theme" type="button" data-theme-toggle aria-label="Switch appearance">◐</button>
+    <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-logout" title="Log out" aria-label="Log out">↪</button></form>
+  </div>
+</nav>

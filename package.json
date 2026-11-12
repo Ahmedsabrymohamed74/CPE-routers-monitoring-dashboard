@@ -1,0 +1,6 @@
+{
+  "name": "cpe-dashboard-ui-tests",
+  "private": true,
+  "scripts": {"test": "node --test scripts/test_history_ui.cjs"},
+  "devDependencies": {"jsdom": "22.1.0"}
+}

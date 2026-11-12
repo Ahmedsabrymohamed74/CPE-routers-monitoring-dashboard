@@ -1,0 +1,10 @@
+{% set spec = signal_metrics.get(condition.metric, signal_metrics.rsrp) %}
+<div class="signal-condition" data-condition>
+  <div class="condition-join"><select name="condition_join" aria-label="Combine with previous condition"><option value="AND" {% if condition.join == 'AND' %}selected{% endif %}>AND</option><option value="OR" {% if condition.join != 'AND' %}selected{% endif %}>OR</option></select></div>
+  <input type="hidden" name="condition_id" value="{{ condition.id }}">
+  <label class="check-label condition-enabled"><input class="check-input" type="checkbox" name="condition_enabled" value="{{ condition.id }}" {% if condition.enabled %}checked{% endif %}> Enabled</label>
+  <label>Signal metric<select name="condition_metric">{% for key, metric in signal_metrics.items() %}<option value="{{ key }}" data-min="{{ metric.minimum }}" data-max="{{ metric.maximum }}" data-unit="{{ metric.unit }}" {% if key == condition.metric %}selected{% endif %}>{{ metric.label }}</option>{% endfor %}</select></label>
+  <label>Operator<select name="condition_operator">{% for op,label in operators.items() %}<option value="{{ op }}" {% if op == condition.operator %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>Threshold <span class="condition-unit">{{ spec.unit }}</span><input type="number" name="condition_value" step="any" min="{{ spec.minimum }}" max="{{ spec.maximum }}" value="{{ condition.value if condition.value is not none else '' }}" {% if condition.enabled %}required{% endif %}></label>
+  <button type="button" data-remove-condition class="condition-remove" aria-label="Remove signal condition">Remove</button>
+</div>

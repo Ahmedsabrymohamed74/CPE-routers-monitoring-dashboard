@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ page|title }} · {{ site.title }}</title>{% include 'theme_head.html' %}<link rel="stylesheet" href="{{ url_for('static', filename='shell.css') }}"><script defer src="{{ url_for('static', filename='portal.js') }}"></script></head>
+<body class="shell-page">{% include 'navigation.html' %}<main class="shell-main">
+{% for message in get_flashed_messages() %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
+{% if page in ['alerts', 'alert_rules', 'notifications'] %}{% include 'alerts_tabs.html' %}{% endif %}
+{% if page == 'home' %}
+<header class="page-heading"><div><span class="eyebrow">Network overview</span><h1>{{ site.title }}</h1><p>{{ site.description }}</p></div><a class="button primary" href="{{ url_for('dashboard') }}">Open dashboard ↗</a></header>
+<div class="shell-grid">{% for card in cards %}<section class="panel"><div class="panel-heading"><div><span class="eyebrow">{{ card.vendor }}</span><h2>{{ card.name }}</h2></div><span class="status-badge">{{ 'Metrics recorded' if card.latest else ('Awaiting metrics' if card.configured else 'Not configured') }}</span></div>
+<div class="signal-metrics">{% for key,unit in [('rsrp','dBm'),('rsrq','dB'),('sinr','dB')] %}<div><small>{{ key|upper }}</small><strong>{{ card.latest[key] if card.latest and card.latest[key] is not none else '—' }}</strong><small>{{ unit }}</small></div>{% endfor %}</div>
+<p>{% if card.latest %}Cell {{ card.latest.cell_id or '—' }} · PCI {{ card.latest.pci or '—' }}<br><small>Last sample <time datetime="{{ card.latest.time }}">{{ card.latest.time }}</time></small>{% else %}Historical metrics will appear here once this router is configured and collecting data.{% endif %}</p><a class="button" href="{{ url_for('dashboard') }}">Explore cellular metrics →</a></section>{% endfor %}</div>
+<section class="panel"><h2>Your network workspace</h2><p>Investigate signal quality, review alerts, and manage your routers from one place.</p><div class="quick-links"><a class="button" href="{{ url_for('portal.alerts') }}">◉ Review alerts</a><a class="button" href="{{ url_for('portal.settings') }}">⚙ Settings</a><a class="button" href="{{ url_for('portal.actions') }}">↗ Router actions</a></div></section>
+{% elif page == 'alerts' %}
+{% include 'alerts_content.html' %}
+{% elif page == 'notifications' %}
+{% include 'notifications_content.html' %}
+{% elif page == 'alert_rules' %}
+{% include 'alert_rules.html' %}
+{% elif page == 'settings' %}
+{% include 'settings_content.html' %}
+{% elif page == 'actions' %}
+<header class="page-heading"><div><span class="eyebrow">Router operations</span><h1>Actions</h1><p>Run diagnostics and manage router connectivity.</p></div><span class="role-badge">{{ role_label }} access</span></header>
+<div class="restart-layout"><section class="panel"><h2>Restart router</h2><p>Restarting interrupts internet access and may disconnect Wi-Fi devices for a few minutes.</p>{% if can('restart_router') %}<label for="restartVendor">Router</label><select id="restartVendor">{% for vendor, router in routers.items() %}<option value="{{ vendor }}">{{ router.router_name }} · {{ vendor|upper }}</option>{% endfor %}</select><button id="restartRouter" class="danger" type="button">↻ Restart router</button><p class="muted">Admin only · Explicit confirmation · One request per router every five minutes</p>{% else %}<div class="notice">Only an administrator can restart a router. Your account has {{ role_label|lower }} access.</div>{% endif %}<div id="actionStatus" role="status" class="notice" hidden></div></section>
+<section class="panel"><h2>Speed test</h2><p>Measure your internet connection. A test consumes bandwidth while it runs.</p>{% if can('run_speedtest') %}<button id="actionSpeedtest" class="primary" type="button">Run speed test ↗</button>{% else %}<p>Available to Operator and Admin accounts.</p>{% endif %}</section></div>
+<section class="panel"><h2>Recent router actions</h2><div class="table-scroll"><table class="shell-table"><thead><tr><th>Time</th><th>Account</th><th>Router</th><th>Action</th><th>Result</th></tr></thead><tbody>{% for event in events %}<tr><td><time datetime="{{ event.created_at.isoformat() }}">{{ event.created_at }}</time></td><td>{{ event.username or 'Removed account' }}</td><td>{{ event.vendor|upper }}</td><td>{{ event.action|title }}</td><td>{{ event.status|title }}</td></tr>{% else %}<tr><td colspan="5" class="muted">No router actions recorded yet.</td></tr>{% endfor %}</tbody></table></div></section>
+{% if can('restart_router') %}<dialog id="restartDialog" aria-labelledby="restartTitle"><h2 id="restartTitle">Restart this router?</h2><p>This will interrupt network access. Router: <strong id="restartTarget"></strong>.</p><form id="restartForm"><label for="restartConfirmation">Type RESTART to confirm</label><input id="restartConfirmation" autocomplete="off" spellcheck="false" required><div class="dialog-actions"><button id="cancelRestart" type="button">Cancel</button><button id="confirmRestart" class="danger" type="submit" disabled>Restart router</button></div></form></dialog>{% endif %}
+{% endif %}
+</main></body></html>

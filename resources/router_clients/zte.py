@@ -403,6 +403,22 @@ class ZteRouterClient(BaseRouterClient):
 
         raise RuntimeError("ZTE login failed: " + "; ".join(errors))
 
+    def restart(self):
+        self._require_session_cookie()
+        context = self._get_cmd('wa_inner_version', 'cr_version', 'RD')
+        ad = self._ad_value(context)
+        if not ad:
+            raise RuntimeError('ZTE restart authentication challenge unavailable')
+        response = self.session.post(
+            self.router_url + '/goform/goform_set_cmd_process',
+            headers={**self.headers, 'Cookie': f'{self.session_cookie_name or "zsidn"}="{self.session_cookie}"'},
+            data={'isTest': 'false', 'goformId': 'REBOOT_DEVICE', 'AD': ad}, timeout=10)
+        response.raise_for_status()
+        payload = self._json_response(response, 'ZTE restart response')
+        if str(payload.get('result', '')).lower() not in {'success', '0'}:
+            raise RuntimeError('ZTE did not confirm restart')
+        return True
+
     def get_signal(self, retried_auth=False):
         self._require_session_cookie()
 

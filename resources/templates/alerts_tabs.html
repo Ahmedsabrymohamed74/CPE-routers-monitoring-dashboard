@@ -1,0 +1,4 @@
+<nav class="alerts-tabs" aria-label="Alerts sections">
+  <a href="{{ url_for('portal.alerts') }}" {% if page in ['alerts', 'alert_rules'] %}aria-current="page"{% endif %}>Overview</a>
+  <a href="{{ url_for('portal.notifications') }}" {% if page == 'notifications' %}aria-current="page"{% endif %}>Notifications</a>
+</nav>

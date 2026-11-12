@@ -63,6 +63,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS cellular_metrics (
         time TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+        router_vendor TEXT,
+        router_name TEXT,
+
         network_type TEXT,
         operator TEXT,
 
@@ -99,7 +102,8 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS cell_id_tags (
-        cell_id TEXT PRIMARY KEY,
+        cell_id TEXT NOT NULL,
+        pci TEXT NOT NULL DEFAULT '',
         router_vendor TEXT,
         iso_region_code TEXT NOT NULL,
         custom_label TEXT,
@@ -114,6 +118,7 @@ def init_db():
     );
 
     ALTER TABLE cell_id_tags
+        ADD COLUMN IF NOT EXISTS pci TEXT DEFAULT '',
         ADD COLUMN IF NOT EXISTS router_vendor TEXT,
         ADD COLUMN IF NOT EXISTS iso_region_code TEXT,
         ADD COLUMN IF NOT EXISTS custom_label TEXT,
@@ -126,6 +131,14 @@ def init_db():
         ADD COLUMN IF NOT EXISTS notes TEXT,
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
+    ALTER TABLE cellular_metrics
+        ADD COLUMN IF NOT EXISTS router_vendor TEXT,
+        ADD COLUMN IF NOT EXISTS router_name TEXT;
+
+    UPDATE cell_id_tags SET pci = '' WHERE pci IS NULL;
+    ALTER TABLE cell_id_tags ALTER COLUMN pci SET DEFAULT '';
+    ALTER TABLE cell_id_tags ALTER COLUMN pci SET NOT NULL;
+
     DO $$
     BEGIN
         IF EXISTS (
@@ -137,6 +150,28 @@ def init_db():
             ALTER TABLE cell_id_tags ALTER COLUMN tag DROP NOT NULL;
         END IF;
     END $$;
+
+    DO $$
+    DECLARE
+        constraint_name TEXT;
+        constrained_columns TEXT[];
+    BEGIN
+        SELECT con.conname, array_agg(att.attname ORDER BY ord.ordinality)
+        INTO constraint_name, constrained_columns
+        FROM pg_constraint con
+        JOIN unnest(con.conkey) WITH ORDINALITY AS ord(attnum, ordinality) ON TRUE
+        JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ord.attnum
+        WHERE con.conrelid = 'cell_id_tags'::regclass
+          AND con.contype = 'p'
+        GROUP BY con.conname;
+
+        IF constraint_name IS NOT NULL AND constrained_columns = ARRAY['cell_id'] THEN
+            EXECUTE format('ALTER TABLE cell_id_tags DROP CONSTRAINT %I', constraint_name);
+        END IF;
+    END $$;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS cell_id_tags_cell_id_pci_idx
+        ON cell_id_tags (cell_id, pci);
 
     SELECT create_hypertable(
         'cellular_metrics',
@@ -164,6 +199,7 @@ def insert_metric(data):
 
     sql = """
     INSERT INTO cellular_metrics (
+        router_vendor, router_name,
         network_type, operator,
         pci, cell_id, enodeb_id,
         rsrp, rsrq, sinr, rssi,
@@ -172,6 +208,7 @@ def insert_metric(data):
         raw
     )
     VALUES (
+        %(router_vendor)s, %(router_name)s,
         %(network_type)s, %(operator)s,
         %(pci)s, %(cell_id)s, %(enodeb_id)s,
         %(rsrp)s, %(rsrq)s, %(sinr)s, %(rssi)s,
@@ -182,6 +219,8 @@ def insert_metric(data):
     """
 
     row = {
+        "router_vendor": data.get("router_vendor"),
+        "router_name": data.get("router_name"),
         "network_type": data.get("network_type"),
         "operator": data.get("operator"),
 
@@ -349,6 +388,7 @@ def cell_tag_label(row):
 
 def upsert_cell_tag(
     cell_id,
+    pci,
     iso_region_code,
     custom_label=None,
     notes=None,
@@ -364,6 +404,7 @@ def upsert_cell_tag(
         return
 
     normalized_cell_id = str(cell_id or "").strip()
+    normalized_pci = str(pci or "").strip()
     normalized_iso_region_code = str(iso_region_code or "").strip()
     normalized_custom_label = str(custom_label or "").strip() or None
     normalized_router_vendor = str(router_vendor or "").strip().lower() or None
@@ -376,6 +417,7 @@ def upsert_cell_tag(
     sql = """
     INSERT INTO cell_id_tags (
         cell_id,
+        pci,
         router_vendor,
         iso_region_code,
         custom_label,
@@ -388,8 +430,8 @@ def upsert_cell_tag(
         notes,
         updated_at
     )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
-    ON CONFLICT (cell_id)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+    ON CONFLICT (cell_id, pci)
     DO UPDATE SET
         router_vendor = EXCLUDED.router_vendor,
         iso_region_code = EXCLUDED.iso_region_code,
@@ -410,6 +452,7 @@ def upsert_cell_tag(
                 sql,
                 (
                     normalized_cell_id,
+                    normalized_pci,
                     normalized_router_vendor,
                     normalized_iso_region_code,
                     normalized_custom_label,
@@ -424,22 +467,32 @@ def upsert_cell_tag(
             )
 
 
-def fetch_cell_tags(cell_ids=None):
+def fetch_cell_tags(cell_ids=None, pci=None, router_vendor=None):
     if not db_config_available():
         return []
 
     params = []
     where_clause = ""
+    filters = []
     if cell_ids:
         normalized_cell_ids = [str(value).strip() for value in cell_ids if str(value).strip()]
         if not normalized_cell_ids:
             return []
-        where_clause = "WHERE cell_id = ANY(%s)"
+        filters.append("cell_id = ANY(%s)")
         params.append(normalized_cell_ids)
+    if pci is not None:
+        filters.append("pci = %s")
+        params.append(str(pci or "").strip())
+    if router_vendor:
+        filters.append("router_vendor = %s")
+        params.append(str(router_vendor).strip().lower())
+    if filters:
+        where_clause = "WHERE " + " AND ".join(filters)
 
     sql = f"""
     SELECT
         cell_id,
+        pci,
         router_vendor,
         iso_region_code,
         custom_label,
@@ -453,7 +506,7 @@ def fetch_cell_tags(cell_ids=None):
         updated_at
     FROM cell_id_tags
     {where_clause}
-    ORDER BY iso_region_code, custom_label, cell_id;
+    ORDER BY iso_region_code, custom_label, cell_id, pci;
     """
 
     with get_conn() as conn:
@@ -464,6 +517,7 @@ def fetch_cell_tags(cell_ids=None):
     result = []
     for (
         cell_id,
+        pci,
         router_vendor,
         iso_region_code,
         custom_label,
@@ -478,6 +532,7 @@ def fetch_cell_tags(cell_ids=None):
     ) in rows:
         item = {
             "cell_id": cell_id,
+            "pci": pci,
             "router_vendor": router_vendor,
             "iso_region_code": iso_region_code,
             "custom_label": custom_label,
@@ -496,46 +551,88 @@ def fetch_cell_tags(cell_ids=None):
     return result
 
 
-def fetch_history_cell_groups(minutes=1440, start=None, end=None):
+def fetch_history_cell_groups(minutes=1440, start=None, end=None, router_vendor=None):
     if not db_config_available():
         return []
 
     minutes = max(1, int(minutes))
-    where_clause = "cm.time >= now() - (%s || ' minutes')::interval"
-    params = [minutes]
+    where_clause = "time >= now() - (%s || ' minutes')::interval"
+    filtered_params = [minutes]
 
     if start and end:
-        where_clause = "cm.time >= %s::timestamptz AND cm.time <= %s::timestamptz"
-        params = [start, end]
+        where_clause = "time >= %s::timestamptz AND time <= %s::timestamptz"
+        filtered_params = [start, end]
     elif start:
-        where_clause = "cm.time >= %s::timestamptz"
-        params = [start]
+        where_clause = "time >= %s::timestamptz"
+        filtered_params = [start]
     elif end:
-        where_clause = "cm.time <= %s::timestamptz"
-        params = [end]
+        where_clause = "time <= %s::timestamptz"
+        filtered_params = [end]
+
+    all_seen_filters = [
+        "cell_id IS NOT NULL",
+        "cell_id <> ''",
+    ]
+    if router_vendor:
+        normalized_router_vendor = str(router_vendor).strip().lower()
+        where_clause = f"{where_clause} AND router_vendor = %s"
+        filtered_params.append(normalized_router_vendor)
+        all_seen_filters.append("router_vendor = %s")
+        all_seen_params = [normalized_router_vendor]
+    else:
+        all_seen_params = []
 
     sql = f"""
+    WITH all_seen AS (
+        SELECT
+            cell_id,
+            COALESCE(pci, '') AS pci,
+            COALESCE(enodeb_id, '') AS enodeb_id,
+            COALESCE(tac, '') AS tac,
+            router_vendor,
+            MIN(time) AS first_seen
+        FROM cellular_metrics
+        WHERE {" AND ".join(all_seen_filters)}
+        GROUP BY cell_id, COALESCE(pci, ''), COALESCE(enodeb_id, ''), COALESCE(tac, ''), router_vendor
+    ),
+    filtered_metrics AS (
+        SELECT *
+        FROM cellular_metrics
+        WHERE {where_clause}
+          AND cell_id IS NOT NULL
+          AND cell_id <> ''
+    )
     SELECT
-        cm.cell_id,
-        cit.router_vendor,
+        fm.cell_id,
+        COALESCE(fm.pci, '') AS pci,
+        COALESCE(fm.enodeb_id, '') AS enodeb_id,
+        COALESCE(fm.tac, '') AS tac,
+        MAX(cit.profile_enodeb_id) AS profile_enodeb_id,
+        MAX(cit.profile_tac) AS profile_tac,
+        cit.router_vendor AS tag_router_vendor,
         cit.iso_region_code,
         cit.custom_label,
         cit.notes,
         COUNT(*) AS sample_count,
-        MIN(cm.time) AS first_seen,
-        MAX(cm.time) AS last_seen,
-        AVG(cm.rsrp) AS avg_rsrp,
-        AVG(cm.rsrq) AS avg_rsrq,
-        AVG(cm.sinr) AS avg_sinr,
-        AVG(cm.rssi) AS avg_rssi
-    FROM cellular_metrics cm
-    LEFT JOIN cell_id_tags cit ON cit.cell_id = cm.cell_id
-    WHERE {where_clause}
-      AND cm.cell_id IS NOT NULL
-      AND cm.cell_id <> ''
-    GROUP BY cm.cell_id, cit.router_vendor, cit.iso_region_code, cit.custom_label, cit.notes
+        MIN(all_seen.first_seen) AS first_seen,
+        MAX(fm.time) AS last_seen,
+        AVG(fm.rsrp) AS avg_rsrp,
+        AVG(fm.rsrq) AS avg_rsrq,
+        AVG(fm.sinr) AS avg_sinr,
+        AVG(fm.rssi) AS avg_rssi
+    FROM filtered_metrics fm
+    LEFT JOIN all_seen
+      ON all_seen.cell_id = fm.cell_id
+     AND all_seen.pci = COALESCE(fm.pci, '')
+     AND all_seen.enodeb_id = COALESCE(fm.enodeb_id, '')
+     AND all_seen.tac = COALESCE(fm.tac, '')
+     AND all_seen.router_vendor IS NOT DISTINCT FROM fm.router_vendor
+    LEFT JOIN cell_id_tags cit ON cit.cell_id = fm.cell_id AND cit.pci = COALESCE(fm.pci, '')
+      AND (cit.router_vendor = fm.router_vendor OR cit.router_vendor IS NULL OR cit.router_vendor = '')
+    GROUP BY fm.cell_id, COALESCE(fm.pci, ''), COALESCE(fm.enodeb_id, ''), COALESCE(fm.tac, ''), cit.router_vendor, cit.iso_region_code, cit.custom_label, cit.notes
     ORDER BY last_seen DESC, sample_count DESC;
     """
+    params = all_seen_params + filtered_params
 
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -544,7 +641,12 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
 
     keys = [
         "cell_id",
-        "router_vendor",
+        "pci",
+        "enodeb_id",
+        "tac",
+        "profile_enodeb_id",
+        "profile_tac",
+        "tag_router_vendor",
         "iso_region_code",
         "custom_label",
         "notes",
@@ -572,38 +674,52 @@ def fetch_history_cell_groups(minutes=1440, start=None, end=None):
     return result
 
 
-def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
+def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None, router_vendor=None, latest=False,
+                  pci=None, enodeb_id=None, tac=None):
     if not db_config_available():
         return []
 
     minutes = max(1, int(minutes))
     limit = min(max(1, int(limit)), 2000)
 
-    where_clause = "cm.time >= now() - (%s || ' minutes')::interval"
-    params = [minutes]
+    where_clause = "TRUE" if latest else "cm.time >= now() - (%s || ' minutes')::interval"
+    params = [] if latest else [minutes]
 
-    if start and end:
+    if not latest and start and end:
         where_clause = "cm.time >= %s::timestamptz AND cm.time <= %s::timestamptz"
         params = [start, end]
-    elif start:
+    elif not latest and start:
         where_clause = "cm.time >= %s::timestamptz"
         params = [start]
-    elif end:
+    elif not latest and end:
         where_clause = "cm.time <= %s::timestamptz"
         params = [end]
+
+    if router_vendor:
+        where_clause = f"{where_clause} AND cm.router_vendor = %s"
+        params.append(str(router_vendor).strip().lower())
 
     if cell_id:
         where_clause = f"{where_clause} AND cm.cell_id = %s"
         params.append(str(cell_id))
 
+    # None means all sectors; an explicit empty string matches missing metadata.
+    for column, value in (("pci", pci), ("enodeb_id", enodeb_id), ("tac", tac)):
+        if value is not None:
+            where_clause += f" AND COALESCE(cm.{column}, '') = %s"
+            params.append(str(value).strip())
+
+    row_limit = "LIMIT 1" if limit == 1 else ""
     sql = f"""
     SELECT
         cm.time,
+        cm.router_vendor,
+        cm.router_name,
         cm.network_type,
         cm.operator,
         cm.pci,
         cm.cell_id,
-        cit.router_vendor,
+        cit.router_vendor AS tag_router_vendor,
         cit.iso_region_code,
         cit.custom_label,
         cit.notes,
@@ -621,9 +737,11 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
         cm.transmode,
         cm.cqi0
     FROM cellular_metrics cm
-    LEFT JOIN cell_id_tags cit ON cit.cell_id = cm.cell_id
+    LEFT JOIN cell_id_tags cit ON cit.cell_id = cm.cell_id AND cit.pci = COALESCE(cm.pci, '')
+      AND (cit.router_vendor = cm.router_vendor OR cit.router_vendor IS NULL OR cit.router_vendor = '')
     WHERE {where_clause}
-    ORDER BY cm.time ASC;
+    ORDER BY cm.time DESC
+    {row_limit};
     """
 
     with get_conn() as conn:
@@ -632,18 +750,22 @@ def fetch_history(minutes=1440, limit=500, start=None, end=None, cell_id=None):
             rows = cur.fetchall()
 
     if len(rows) > limit and limit == 1:
-        rows = [rows[-1]]
+        rows = [rows[0]]
     elif len(rows) > limit:
         step = (len(rows) - 1) / (limit - 1)
         rows = [rows[round(index * step)] for index in range(limit)]
 
+    rows = list(reversed(rows))
+
     keys = [
         "time",
+        "router_vendor",
+        "router_name",
         "network_type",
         "operator",
         "pci",
         "cell_id",
-        "router_vendor",
+        "tag_router_vendor",
         "iso_region_code",
         "custom_label",
         "notes",

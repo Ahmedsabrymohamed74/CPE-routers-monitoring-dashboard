@@ -156,6 +156,22 @@ class HuaweiRouterClient(BaseRouterClient):
 
         return True
 
+    def restart(self):
+        # A single device-control request, never retry an uncertain restart.
+        self.login()
+        tokens = self._get_page_tokens()
+        response = self.session.post(
+            self.router_url + '/api/device/control',
+            headers={**self.headers, 'Content-Type': 'application/xml', '__RequestVerificationToken': tokens[0]},
+            data='<?xml version="1.0" encoding="UTF-8"?><request><Control>1</Control></request>',
+            timeout=10,
+        )
+        response.raise_for_status()
+        root = ET.fromstring(response.text)
+        if root.tag != 'response' or (root.text or '').strip().upper() != 'OK':
+            raise RuntimeError('Huawei did not confirm restart')
+        return True
+
     def get_signal(self):
         r = self.session.get(
             f"{self.router_url}/api/device/signal",
@@ -175,6 +191,12 @@ class HuaweiRouterClient(BaseRouterClient):
             )
 
         return self._xml_to_dict(r.text)
+
+    def probe_cell_lock_capabilities(self):
+        """Opt-in GET-only diagnostics; does not change router configuration."""
+        from .huawei_probe import probe_cell_lock_capabilities
+
+        return probe_cell_lock_capabilities(self)
 
     def get_status(self):
         r = self.session.get(

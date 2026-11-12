@@ -1,0 +1,7 @@
+<header class="page-heading"><div><span class="eyebrow">Alert delivery</span><h1>Notifications</h1><p>Receive alerts on your phone through chat or email. Channel integrations will be added here in a future update.</p></div><span class="status-badge">Delivery not enabled</span></header>
+<div class="notice" role="status">Alerts continue to appear in the Overview and Event history. No chat messages or emails are sent yet.</div>
+<div class="shell-grid">
+  <section class="panel notification-channel"><div class="panel-heading"><h2>Chat & messaging</h2><span class="status-badge">Not connected</span></div><p>Connect a chat service later to receive alert notifications on your mobile device.</p><p class="muted">Provider, destination and delivery preferences will be configured here once integration is available.</p></section>
+  <section class="panel notification-channel"><div class="panel-heading"><h2>Email</h2><span class="status-badge">Not connected</span></div><p>Connect an email service later to receive alert notifications in your inbox.</p><p class="muted">Mail server, recipients and delivery preferences will be configured here once integration is available.</p></section>
+</div>
+<section class="panel"><h2>Delivery history</h2><div class="empty-state"><h3>No notifications sent</h3><p>Delivery history will appear here after a notification channel is connected.</p><a class="button" href="{{ url_for('portal.alerts') }}">View alert events</a></div></section>

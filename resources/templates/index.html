@@ -11,27 +11,110 @@
       background: #111827;
       color: #f9fafb;
       margin: 0;
-      padding: 24px;
+      padding: 112px 24px 24px;
     }
 
-    h1 {
-      margin-bottom: 6px;
+    .topbar {
+      align-items: center;
+      background: #1f2937;
+      border-bottom: 1px solid #374151;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.24);
+      display: grid;
+      gap: 16px;
+      grid-template-columns: minmax(120px, 1fr) auto minmax(360px, 1fr);
+      left: 0;
+      min-height: 72px;
+      padding: 12px 24px;
+      position: fixed;
+      right: 0;
+      top: 0;
+      z-index: 80;
     }
 
-    .subtitle {
-      color: #9ca3af;
-      margin-bottom: 24px;
+    .brand-logo {
+      align-items: center;
+      display: flex;
+      gap: 10px;
+      font-weight: bold;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      align-items: center;
+      background: #2563eb;
+      border-radius: 8px;
+      color: #ffffff;
+      display: inline-flex;
+      font-size: 13px;
+      height: 36px;
+      justify-content: center;
+      letter-spacing: 0;
+      width: 42px;
+    }
+
+    .brand-name {
+      color: #d1d5db;
+      font-size: 14px;
+    }
+
+    .app-title {
+      color: #f9fafb;
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+      white-space: nowrap;
     }
 
     .toolbar {
+      align-items: center;
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
       gap: 10px;
-      margin-bottom: 24px;
-      background: #1f2937;
-      padding: 14px;
-      border-radius: 14px;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+
+    .toolbar-field {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .theme-toggle {
+      align-items: center;
+      display: inline-flex;
+      font-size: 18px;
+      height: 36px;
+      justify-content: center;
+      padding: 0;
+      width: 38px;
+    }
+
+    .locked-interval {
+      background: #111827;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      color: #d1d5db;
+      cursor: help;
+      display: none;
+      font-size: 14px;
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+
+    .toolbar-field.locked #refreshInterval {
+      display: none;
+    }
+
+    .toolbar-field.locked .locked-interval {
+      display: inline-block;
     }
 
     .toolbar-label {
@@ -106,7 +189,6 @@
     }
 
     .manual-refresh {
-      margin-left: auto;
       background: #059669;
     }
 
@@ -356,6 +438,9 @@
       margin-left: auto;
     }
 
+    .history-profile-details { width: 100%; font-size: 13px; }
+    .history-toolbar :disabled { cursor: not-allowed; opacity: 0.6; }
+
     .custom-range {
       display: flex;
       flex-wrap: wrap;
@@ -535,9 +620,12 @@
       border: 1px solid #4b5563;
       border-radius: 12px;
       box-shadow: 0 18px 48px rgba(0,0,0,0.5);
-      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      max-height: min(760px, calc(100vh - 40px));
+      max-width: 620px;
       padding: 18px;
-      width: min(520px, 100%);
+      width: min(620px, 100%);
     }
 
     .modal-title {
@@ -546,8 +634,57 @@
       margin-bottom: 14px;
     }
 
+    .modal-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .modal-tab-panel {
+      display: none;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .modal-tab-panel.active {
+      display: block;
+    }
+
     .modal .field {
       margin-top: 12px;
+    }
+
+    .profile-field-row {
+      align-items: end;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .profile-field-row .field {
+      margin-top: 0;
+    }
+
+    .profile-field-add-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .profile-browser-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .profile-browser-meta {
+      color: #9ca3af;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-top: 10px;
     }
 
     .modal-actions {
@@ -555,6 +692,10 @@
       gap: 10px;
       justify-content: flex-end;
       margin-top: 16px;
+    }
+
+    .hidden {
+      display: none;
     }
 
     .cell-group-list {
@@ -572,7 +713,7 @@
       cursor: pointer;
       display: grid;
       gap: 8px;
-      grid-template-columns: minmax(0, 1.5fr) repeat(5, minmax(80px, 0.7fr));
+      grid-template-columns: minmax(0, 1.5fr) repeat(6, minmax(80px, 0.7fr));
       padding: 10px 12px;
       text-align: left;
       width: 100%;
@@ -609,14 +750,14 @@
     }
 
     body.light-theme {
-      background: #f3f4f6;
+      background: #e8edf3;
       color: #111827;
     }
 
-    body.light-theme .subtitle,
     body.light-theme .label,
     body.light-theme .toolbar-label,
     body.light-theme .field label,
+    body.light-theme .profile-browser-meta,
     body.light-theme .history-range-status,
     body.light-theme .history-table th,
     body.light-theme .cell-group-header,
@@ -627,7 +768,7 @@
       color: #4b5563;
     }
 
-    body.light-theme .toolbar,
+    body.light-theme .topbar,
     body.light-theme .history-panel,
     body.light-theme .speedtest-panel,
     body.light-theme .card,
@@ -638,6 +779,19 @@
 
     body.light-theme .dashboard-group {
       background: rgba(229, 231, 235, 0.9);
+    }
+
+    body.light-theme .topbar {
+      border-bottom-color: #d1d5db;
+      box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
+    }
+
+    body.light-theme .app-title {
+      color: #111827;
+    }
+
+    body.light-theme .brand-name {
+      color: #4b5563;
     }
 
     body.light-theme .section-title,
@@ -684,6 +838,12 @@
       background: #047857;
     }
 
+    body.light-theme .locked-interval {
+      background: #ffffff;
+      border-color: #d1d5db;
+      color: #4b5563;
+    }
+
     body.light-theme .tooltip,
     body.light-theme .chart-tooltip {
       background: #ffffff;
@@ -727,15 +887,44 @@
 
     @media (max-width: 500px) {
       body {
-        padding: 14px;
+        padding: 190px 14px 14px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+        padding: 10px 14px;
+      }
+
+      .brand-logo,
+      .app-title,
+      .toolbar {
+        justify-content: center;
+      }
+
+      .app-title {
+        font-size: 18px;
       }
 
       .grid {
         grid-template-columns: 1fr;
       }
 
-      .manual-refresh {
-        margin-left: 0;
+      .toolbar {
+        justify-content: stretch;
+      }
+
+      .toolbar-field {
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .toolbar-actions {
+        justify-content: stretch;
+      }
+
+      .toolbar-actions button {
+        flex: 1;
       }
 
       .value {
@@ -757,30 +946,47 @@
       }
     }
   </style>
+  {% include 'theme_head.html' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='shell.css') }}">
 </head>
 
-<body>
-  <h1>CPE Router Dashboard</h1>
-  <div class="subtitle">Live cellular signal information</div>
+<body class="dashboard-page">
+  {% include 'navigation.html' %}
+  <header class="topbar">
+    <div class="page-context"><span class="eyebrow">Live network</span><h1>Dashboard</h1></div>
 
-  <div class="toolbar">
-    <span class="toolbar-label">Current Router:</span>
-    <select id="routerVendor">
-      <option value="huawei">Huawei</option>
-      <option value="zte">ZTE</option>
-    </select>
+    <div class="toolbar">
+      <div class="toolbar-field">
+        <span class="toolbar-label">Router:</span>
+        <select id="routerVendor">
+          <option value="huawei">Huawei</option>
+          <option value="zte">ZTE</option>
+        </select>
+      </div>
 
-    <span class="toolbar-label">Refresh interval:</span>
+      <div class="toolbar-field" id="intervalControl">
+        <span class="toolbar-label">Interval:</span>
+        <select id="refreshInterval">
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="15000" selected>15s</option>
+          <option value="30000">30s</option>
+          <option value="60000">60s</option>
+        </select>
+        <span
+          class="locked-interval"
+          id="lockedHuaweiInterval"
+          title="Huawei signal data is available about every 3 seconds, so the live fetch interval is locked to avoid skipping samples."
+        >3s</span>
+      </div>
 
-    <button class="interval-btn" data-interval="5000">5s</button>
-    <button class="interval-btn" data-interval="10000">10s</button>
-    <button class="interval-btn active" data-interval="15000">15s</button>
-    <button class="interval-btn" data-interval="30000">30s</button>
-    <button class="interval-btn" data-interval="60000">60s</button>
-
-    <button id="themeToggle">Light mode</button>
-    <button class="manual-refresh" id="manualRefresh">Refresh now</button>
-  </div>
+      <div class="toolbar-actions">
+        <a class="icon-link" href="{{ url_for('auth.personalization') }}" title="Account settings" aria-label="Account settings">{% include 'icons/user-round.svg' %}</a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">&#9680;</button>
+        <button class="manual-refresh" id="manualRefresh">Refresh now</button>
+      </div>
+    </div>
+  </header>
 
   <details class="dashboard-group" open>
     <summary class="section-title">General Info</summary>
@@ -807,10 +1013,10 @@
           </div>
 
           <div class="card">
-            <div class="label">Cell ID</div>
-            <button class="card-action" id="editCellTag" title="Tag this Cell ID">+</button>
+            <div class="label">Cell/Tower Profile</div>
+            <button class="card-action" id="editCellTag" {% if not can('edit_profiles') %}disabled title="Operator or Admin access required"{% endif %} title="Add profile" aria-label="Add profile">+</button>
             <div class="value wide-value" id="cell_id">--</div>
-            <div class="tooltip">The serving LTE cell identifier. When tagged, this shows the custom tower label and ISO 3166-2 region with the Cell ID in brackets.</div>
+            <div class="tooltip">The serving cell profile. When tagged, this shows the custom tower label with the Cell ID in brackets.</div>
           </div>
         </div>
       </div>
@@ -879,7 +1085,7 @@
         </div>
 
         <div class="speedtest-actions">
-          <button class="speedtest-run" id="runSpeedTest">Run speed test</button>
+          <button class="speedtest-run" id="runSpeedTest" {% if not can('run_speedtest') %}disabled title="Operator or Admin access required"{% endif %}>Run speed test</button>
           <span class="history-range-status" id="speedtestStatus">No speed test loaded</span>
           <div class="speedtest-note">Note: speed test results are measured from the VM/pod running the dashboard, not from this browser device.</div>
         </div>
@@ -956,19 +1162,32 @@
       <details class="metric-subsection" open>
         <summary class="metric-subtitle">Cellular Metrics</summary>
         <div class="history-toolbar">
-          <span class="toolbar-label">Range:</span>
-          <button class="history-range-btn" data-minutes="15">15m</button>
-          <button class="history-range-btn" data-minutes="30">30m</button>
-          <button class="history-range-btn active" data-minutes="60">1h</button>
-          <button class="history-range-btn" data-minutes="360">6h</button>
-          <button class="history-range-btn" data-minutes="1440">24h</button>
-          <button class="history-range-btn" data-minutes="4320">3d</button>
-          <button class="history-range-btn" data-minutes="10080">7d</button>
-          <span class="toolbar-label">Choose tower / Cell ID:</span>
+          <label class="toolbar-label" for="historyRangeSelect">Range:</label>
+          <select id="historyRangeSelect">
+            <option value="now">Now</option>
+            <option value="5">5m</option>
+            <option value="10">10m</option>
+            <option value="15">15m</option>
+            <option value="30">30m</option>
+            <option value="60" selected>1h</option>
+            <option value="120">2h</option>
+            <option value="180">3h</option>
+            <option value="360">6h</option>
+            <option value="1440">24h</option>
+            <option value="4320">3d</option>
+            <option value="10080">7d</option>
+          </select>
+          <label class="toolbar-label" for="historyCellFilter">Cell ID:</label>
           <select id="historyCellFilter">
             <option value="">All cells</option>
           </select>
+          <label class="toolbar-label" for="historyProfileFilter">PCI / eNodeB:</label>
+          <select id="historyProfileFilter" disabled>
+            <option value="">All sectors (PCI)</option>
+          </select>
+          <span id="historyLoading" role="status" aria-live="polite" hidden>Loading cellular history…</span>
           <span class="history-range-status" id="historyRangeStatus">Showing last 1h</span>
+          <div id="historyProfileDetails" class="history-profile-details">All cells and sector profiles</div>
           <div class="custom-range">
             <span class="toolbar-label">Custom:</span>
             <input type="datetime-local" id="historyStart">
@@ -1104,49 +1323,75 @@
 
   <div class="modal-backdrop" id="cellTagModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cellTagTitle">
-      <div class="modal-title" id="cellTagTitle">Tag Cell ID</div>
-      <div class="field">
-        <label for="cellTagCellId">Cell ID</label>
-        <input id="cellTagCellId" readonly>
+      <div class="modal-title" id="cellTagTitle">Saved Profiles</div>
+      <div class="modal-tabs hidden" id="profileEditorTabs">
+        <button class="profile-tab active" data-profile-tab="identity" type="button">Identity</button>
+        <button class="profile-tab" data-profile-tab="network" type="button">Network</button>
+        <button class="profile-tab" data-profile-tab="custom" type="button">Custom</button>
       </div>
-      <div class="field">
-        <label for="cellTagRouterType">Router Type</label>
-        <input id="cellTagRouterType" readonly>
+
+      <div class="modal-tab-panel" data-profile-panel="identity">
+        <div class="field">
+          <label for="cellTagCellId">Cell ID</label>
+          <input id="cellTagCellId" readonly>
+        </div>
+        <div class="field">
+          <label for="cellTagPci">PCI</label>
+          <input id="cellTagPci" readonly>
+        </div>
+        <div class="field">
+          <label for="cellTagRouterType">Router Type</label>
+          <input id="cellTagRouterType" readonly>
+        </div>
+        <div class="field">
+          <label for="cellTagRegion">ISO 3166-2 region</label>
+          <select id="cellTagRegion"></select>
+        </div>
+        <div class="field">
+          <label for="cellTagCustomLabel">Custom tower label</label>
+          <input id="cellTagCustomLabel" placeholder="Amwaj North Coast">
+        </div>
       </div>
-      <div class="field">
-        <label for="cellTagRegion">ISO 3166-2 region</label>
-        <select id="cellTagRegion"></select>
+
+      <div class="modal-tab-panel" data-profile-panel="network">
+        <div id="cellProfileExtractedFields"></div>
+        <div class="profile-field-add-list" id="cellProfileAddList"></div>
       </div>
-      <div class="field">
-        <label for="cellTagCustomLabel">Custom tower label</label>
-        <input id="cellTagCustomLabel" placeholder="Amwaj North Coast">
+
+      <div class="modal-tab-panel" data-profile-panel="custom">
+        <div class="field">
+          <label>Custom fields</label>
+          <div id="cellProfileCustomFields"></div>
+          <button id="addCellProfileField" type="button">Add field</button>
+        </div>
       </div>
-      <div class="field">
-        <label for="cellProfileEnodeb">eNodeB ID</label>
-        <input id="cellProfileEnodeb" readonly>
+
+      <div class="modal-tab-panel active" data-profile-panel="saved">
+        <div class="field">
+          <label for="savedProfileRouter">Router Type</label>
+          <select id="savedProfileRouter">
+            <option value="huawei">Huawei</option>
+            <option value="zte">ZTE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="savedProfileCellSelect">Cell ID</label>
+          <select id="savedProfileCellSelect"></select>
+          <label for="savedProfileSelect">PCI / eNodeB profile</label>
+          <select id="savedProfileSelect"></select>
+        </div>
+        <div class="profile-browser-actions">
+          <button id="refreshSavedProfiles" type="button">Refresh profiles</button>
+          <button id="loadSavedProfile" type="button">Load selected</button>
+          <button id="editCurrentProfile" type="button">Add current profile</button>
+        </div>
+        <div class="profile-browser-meta" id="savedProfileMeta">No saved profile loaded</div>
       </div>
-      <div class="field">
-        <label for="cellProfileTac">TAC</label>
-        <input id="cellProfileTac" readonly>
+      <div class="modal-actions" id="profileBrowserActions">
+        <button id="cellTagBrowseCancel">Cancel</button>
       </div>
-      <div class="field">
-        <label for="cellProfilePlmn">PLMN</label>
-        <input id="cellProfilePlmn" readonly>
-      </div>
-      <div class="field">
-        <label for="cellProfileTransmode">Transmission Mode</label>
-        <input id="cellProfileTransmode" readonly>
-      </div>
-      <div class="field">
-        <label for="cellProfileCqi">CQI</label>
-        <input id="cellProfileCqi" readonly>
-      </div>
-      <div class="field">
-        <label>Custom fields</label>
-        <div id="cellProfileCustomFields"></div>
-        <button id="addCellProfileField" type="button">Add field</button>
-      </div>
-      <div class="modal-actions">
+      <div class="modal-actions hidden" id="profileEditorActions">
+        <button id="backToSavedProfiles" type="button">Back</button>
         <button id="cellTagCancel">Cancel</button>
         <button class="manual-refresh" id="cellTagSave">Save</button>
       </div>
@@ -1160,27 +1405,65 @@
   </div>
 
   <script>
-    let refreshIntervalMs = 15000;
+    const dashboardCsrfToken = {{ csrf_token() | tojson }};
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input, options = {}) => {
+      const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+      const method = (options.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
+      if (url.origin === window.location.origin && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+        const headers = new Headers(options.headers || (input instanceof Request ? input.headers : undefined));
+        headers.set("X-CSRF-Token", dashboardCsrfToken);
+        options = { ...options, headers };
+      }
+      const response = await originalFetch(input, options);
+      if (url.origin === window.location.origin && response.status === 401) {
+        window.location.assign({{ url_for('auth.login') | tojson }});
+      }
+      return response;
+    };
+    const HUAWEI_FIXED_INTERVAL_MS = 3000;
+    let configuredLiveFetchIntervalMs = 15000;
+    let refreshIntervalMs = configuredLiveFetchIntervalMs;
+    let defaultCellularHistoryRange = "60";
+    let historyRangeMode = "range";
     let historyRangeMinutes = 60;
     let customHistoryRange = null;
     let lanRangeMinutes = 1440;
     let customLanRange = null;
     let syncRangesEnabled = false;
     let selectedRouterVendor = "huawei";
-    let currentTheme = localStorage.getItem("dashboardTheme") || "dark";
+    let currentTheme = window.CPETheme.current.mode;
     let refreshTimer = null;
     let isFetching = false;
     let currentHistoryItems = [];
     let currentSpeedTestItems = [];
     let currentCellId = null;
+    let currentPci = null;
     let currentCellTag = null;
     let currentCellProfileSource = {};
+    let activeProfileCellId = null;
+    let activeProfilePci = null;
+    let activeProfileRouterVendor = null;
+    let savedCellProfiles = [];
+    let visibleProfileFields = new Set();
     let currentCellGroups = [];
     let selectedHistoryCellId = "";
+    let selectedHistoryProfile = "";
+    let historyRequest = null;
+    let historyRequestKey = null;
+    let historyRequestVersion = 0;
+    let historyController = null;
+    let historyLastRequestedAt = 0;
+    const HISTORY_BACKGROUND_INTERVAL_MS = 30000;
+    const HISTORY_REQUEST_TIMEOUT_MS = 15000;
     let cellGroupSortKey = "last_seen";
     let cellGroupSortDirection = "desc";
     let isoRegions = [];
     let lastErrorMessage = null;
+
+    function chartColor(token) {
+      return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || '#338ae8';
+    }
 
     const historyMetrics = [
       {
@@ -1189,7 +1472,7 @@
         key: "rsrp",
         title: "RSRP",
         unit: "dBm",
-        color: "#60a5fa",
+        get color() { return chartColor("--secondary"); },
       },
       {
         canvasId: "historyChartRsrq",
@@ -1197,7 +1480,7 @@
         key: "rsrq",
         title: "RSRQ",
         unit: "dB",
-        color: "#34d399",
+        get color() { return chartColor("--link"); },
       },
       {
         canvasId: "historyChartSinr",
@@ -1205,8 +1488,16 @@
         key: "sinr",
         title: "SINR",
         unit: "dB",
-        color: "#fbbf24",
+        get color() { return chartColor("--highlight"); },
       },
+    ];
+
+    const extractedProfileFields = [
+      { key: "enodeb_id", payloadKey: "profile_enodeb_id", label: "eNodeB ID" },
+      { key: "tac", payloadKey: "profile_tac", label: "TAC" },
+      { key: "plmn", payloadKey: "profile_plmn", label: "PLMN" },
+      { key: "transmode", payloadKey: "profile_transmode", label: "Transmission Mode" },
+      { key: "cqi0", payloadKey: "profile_cqi0", label: "CQI" },
     ];
 
     const lanMetrics = [
@@ -1216,7 +1507,7 @@
         key: "latency_ms",
         title: "Latency",
         unit: "ms",
-        color: "#a78bfa",
+        get color() { return chartColor("--link"); },
       },
       {
         canvasId: "lanChartDownload",
@@ -1224,7 +1515,7 @@
         key: "download_mbps",
         title: "Download",
         unit: "Mbps",
-        color: "#22c55e",
+        get color() { return chartColor("--secondary"); },
       },
       {
         canvasId: "lanChartUpload",
@@ -1232,7 +1523,7 @@
         key: "upload_mbps",
         title: "Upload",
         unit: "Mbps",
-        color: "#fb7185",
+        get color() { return chartColor("--highlight"); },
       },
     ];
 
@@ -1243,14 +1534,16 @@
 
     function applyTheme(theme) {
       currentTheme = theme === "light" ? "light" : "dark";
-      document.body.classList.toggle("light-theme", currentTheme === "light");
-      localStorage.setItem("dashboardTheme", currentTheme);
-      document.getElementById("themeToggle").textContent =
-        currentTheme === "light" ? "Dark mode" : "Light mode";
+      window.CPETheme.apply({ mode: currentTheme });
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle.innerHTML = currentTheme === "light" ? "&#9728;" : "&#9680;";
+      themeToggle.title = currentTheme === "light" ? "Switch to dark mode" : "Switch to light mode";
+      themeToggle.setAttribute("aria-label", themeToggle.title);
     }
 
     function toggleTheme() {
       applyTheme(currentTheme === "light" ? "dark" : "light");
+      window.CPETheme.save().catch(err => showErrorPopup("Appearance error", err.message));
       drawHistoryCharts(currentHistoryItems);
       drawLanCharts(currentSpeedTestItems);
     }
@@ -1266,16 +1559,37 @@
     }
 
     function cellDisplayLabel(item) {
-      if (!item) {
+      if (!item?.cell_id) return "--";
+      const parts = [`Cell ${item.cell_id}`];
+      const pci = item.pci;
+      const enodeb = item.enodeb_id == null || item.enodeb_id === "" ? item.profile_enodeb_id : item.enodeb_id;
+      const tac = item.tac == null || item.tac === "" ? item.profile_tac : item.tac;
+      if (pci !== null && pci !== undefined && pci !== "") parts.push(`PCI ${pci}`);
+      if (enodeb !== null && enodeb !== undefined && enodeb !== "") parts.push(`eNodeB ${enodeb}`);
+      if (tac !== null && tac !== undefined && tac !== "") parts.push(`TAC ${tac}`);
+      const identity = parts.join(" · ");
+      const tag = item.cell_tag || (item.cell_label && item.cell_label !== item.cell_id ? item.cell_label : null);
+      return tag ? `${tag} (${identity})` : identity;
+    }
+
+    function cellCardProfileLabel(item) {
+      if (!item?.cell_id) {
         return "--";
       }
 
-      const cellId = item.cell_id;
-      const tag = item.cell_tag || (item.cell_label && item.cell_label !== cellId ? item.cell_label : null);
-      if (tag && cellId) {
-        return `${tag} (${cellId})`;
-      }
-      return cellId || "--";
+      const customLabel = item.custom_label;
+      return customLabel ? `${customLabel} (${item.cell_id})` : item.cell_id;
+    }
+
+    function hasProfileTag(tag = currentCellTag) {
+      return Boolean(tag && (tag.cell_tag || tag.iso_region_code || tag.custom_label));
+    }
+
+    function updateCellProfileAction() {
+      const button = document.getElementById("editCellTag");
+      const title = hasProfileTag() ? "Edit profile" : "Add profile";
+      button.title = title;
+      button.setAttribute("aria-label", title);
     }
 
     function clearLiveMetrics() {
@@ -1300,8 +1614,10 @@
       ].forEach(id => setText(id, null));
 
       currentCellId = null;
+      currentPci = null;
       currentCellTag = null;
       currentCellProfileSource = {};
+      updateCellProfileAction();
       document.getElementById("raw").textContent = "";
     }
 
@@ -1311,6 +1627,13 @@
         const payload = await responseJsonOrError(res);
         const select = document.getElementById("routerVendor");
         selectedRouterVendor = payload.default_vendor || selectedRouterVendor;
+        if (payload.live_fetch_interval_seconds) {
+          configuredLiveFetchIntervalMs = Number(payload.live_fetch_interval_seconds) * 1000;
+        }
+        if (payload.default_cellular_history_range) {
+          defaultCellularHistoryRange = String(payload.default_cellular_history_range);
+          applyDefaultHistoryRange(defaultCellularHistoryRange);
+        }
         select.innerHTML = (payload.routers || []).map(router => `
           <option
             value="${router.vendor}"
@@ -1320,6 +1643,7 @@
           </option>
         `).join("");
         select.disabled = false;
+        applyVendorIntervalPolicy();
       } catch (err) {
         showErrorPopup("Router list error", err.message || err);
       }
@@ -1334,25 +1658,153 @@
       `).join("");
     }
 
-    async function loadCellTag(cellId) {
+    async function loadCellTag(cellId, pci = currentPci, routerVendor = selectedRouterVendor) {
       if (!cellId) {
         return null;
       }
 
-      const params = new URLSearchParams({ cell_id: cellId });
+      const params = new URLSearchParams({
+        cell_id: cellId,
+        router_vendor: routerVendor,
+      });
+      if (pci) {
+        params.set("pci", pci);
+      }
       const res = await fetch(`/api/cell-tags?${params.toString()}`);
       const payload = await responseJsonOrError(res);
       return (payload.items || [])[0] || null;
     }
 
-    function setProfileField(id, value) {
-      document.getElementById(id).value =
-        value === null || value === undefined || value === "" ? "--" : value;
+    async function loadSavedProfiles(routerVendor = document.getElementById("savedProfileRouter").value) {
+      const params = new URLSearchParams({ router_vendor: routerVendor });
+      const res = await fetch(`/api/cell-tags?${params.toString()}`);
+      const payload = await responseJsonOrError(res);
+      savedCellProfiles = payload.items || [];
+      renderSavedProfileOptions();
+      return savedCellProfiles;
+    }
+
+    function renderSavedProfileOptions() {
+      const cellSelect = document.getElementById("savedProfileCellSelect");
+      const cells = [...new Set(savedCellProfiles.map(profile => String(profile.cell_id)))];
+      const previous = cellSelect.value;
+      cellSelect.innerHTML = cells.length
+        ? cells.map(cell => `<option value="${escapeHtml(cell)}">${escapeHtml(cell)}</option>`).join("")
+        : '<option value="">No saved cells</option>';
+      cellSelect.value = cells.includes(previous) ? previous : (cells[0] || "");
+      renderSavedSectorOptions();
+    }
+
+    function renderSavedSectorOptions() {
+      const cell = document.getElementById("savedProfileCellSelect").value;
+      const select = document.getElementById("savedProfileSelect");
+      const profiles = savedCellProfiles.map((profile, index) => ({profile, index}))
+        .filter(({profile}) => String(profile.cell_id) === cell);
+      select.innerHTML = profiles.length ? profiles.map(({profile, index}) => `
+        <option value="${index}">${escapeHtml(cellDisplayLabel(profile))}</option>
+      `).join("") : '<option value="">No saved profiles</option>';
+      select.disabled = !profiles.length;
+      document.getElementById("loadSavedProfile").disabled = !profiles.length;
+      updateSavedProfileMeta();
+    }
+
+    function selectedSavedProfile() {
+      const value = document.getElementById("savedProfileSelect").value;
+      if (value === "") return null;
+      const index = Number(value);
+      return Number.isInteger(index) ? savedCellProfiles[index] : null;
+    }
+
+    function updateSavedProfileMeta() {
+      const profile = selectedSavedProfile();
+      document.getElementById("savedProfileMeta").textContent = profile
+        ? `${profile.router_vendor?.toUpperCase() || "--"} · ${cellDisplayLabel(profile)} · Updated ${new Date(profile.updated_at).toLocaleString()}`
+        : "No saved profile selected";
+    }
+
+    function profileFieldValue(value) {
+      return value === null || value === undefined || value === "" ? "--" : value;
     }
 
     function readProfileField(id) {
       const value = document.getElementById(id).value.trim();
       return value === "--" ? "" : value;
+    }
+
+    function extractedProfileValue(field, tag = currentCellTag) {
+      const fallback = activeProfileCellId === currentCellId && (activeProfilePci || null) === (currentPci || null)
+        ? currentCellProfileSource[field.key]
+        : null;
+      return profileFieldValue(tag?.[field.payloadKey] || fallback);
+    }
+
+    function renderExtractedProfileFields(tag = currentCellTag) {
+      const container = document.getElementById("cellProfileExtractedFields");
+      const addList = document.getElementById("cellProfileAddList");
+      const fields = extractedProfileFields.filter(field => visibleProfileFields.has(field.key));
+
+      container.innerHTML = fields.map(field => `
+        <div class="profile-field-row" data-profile-field="${field.key}">
+          <div class="field">
+            <label for="cellProfile_${field.key}">${escapeHtml(field.label)}</label>
+            <input id="cellProfile_${field.key}" value="${escapeHtml(extractedProfileValue(field, tag))}" readonly>
+          </div>
+          <button class="profile-field-remove" data-profile-field="${field.key}" type="button" title="Remove field">x</button>
+        </div>
+      `).join("");
+
+      const hiddenFields = extractedProfileFields.filter(field => !visibleProfileFields.has(field.key));
+      addList.innerHTML = hiddenFields.map(field => `
+        <button class="profile-field-add" data-profile-field="${field.key}" type="button">Add ${escapeHtml(field.label)}</button>
+      `).join("");
+
+      container.querySelectorAll(".profile-field-remove").forEach(button => {
+        button.addEventListener("click", () => {
+          visibleProfileFields.delete(button.dataset.profileField);
+          renderExtractedProfileFields(tag);
+        });
+      });
+
+      addList.querySelectorAll(".profile-field-add").forEach(button => {
+        button.addEventListener("click", () => {
+          visibleProfileFields.add(button.dataset.profileField);
+          renderExtractedProfileFields(tag);
+        });
+      });
+    }
+
+    function readExtractedProfileFields() {
+      const values = {};
+      extractedProfileFields.forEach(field => {
+        const input = document.getElementById(`cellProfile_${field.key}`);
+        values[field.payloadKey] = input ? readProfileField(input.id) : "";
+      });
+      return values;
+    }
+
+    function setProfileTab(tabName) {
+      document.querySelectorAll(".profile-tab").forEach(button => {
+        button.classList.toggle("active", button.dataset.profileTab === tabName);
+      });
+      document.querySelectorAll(".modal-tab-panel").forEach(panel => {
+        panel.classList.toggle("active", panel.dataset.profilePanel === tabName);
+      });
+    }
+
+    function setProfileBrowserMode() {
+      document.getElementById("cellTagTitle").textContent = "Saved Profiles";
+      document.getElementById("profileEditorTabs").classList.add("hidden");
+      document.getElementById("profileBrowserActions").classList.remove("hidden");
+      document.getElementById("profileEditorActions").classList.add("hidden");
+      setProfileTab("saved");
+    }
+
+    function setProfileEditorMode(tabName = "identity") {
+      document.getElementById("cellTagTitle").textContent = "Cell/Tower Profile";
+      document.getElementById("profileEditorTabs").classList.remove("hidden");
+      document.getElementById("profileBrowserActions").classList.add("hidden");
+      document.getElementById("profileEditorActions").classList.remove("hidden");
+      setProfileTab(tabName);
     }
 
     function renderCustomFields(fields = {}) {
@@ -1393,29 +1845,41 @@
       renderCustomFields(fields);
     }
 
-    async function openCellTagModal() {
-      if (!currentCellId) {
-        showErrorPopup("Cell tag error", "No live Cell ID is available yet");
-        return;
-      }
+    function populateProfileModal(profile, options = {}) {
+      const routerVendor = (profile?.router_vendor || options.routerVendor || selectedRouterVendor || "").toLowerCase();
+      activeProfileCellId = profile?.cell_id || options.cellId || currentCellId;
+      activeProfilePci = profile?.pci || options.pci || currentPci || "";
+      activeProfileRouterVendor = routerVendor;
 
+      document.getElementById("cellTagCellId").value = activeProfileCellId || "";
+      document.getElementById("cellTagPci").value = activeProfilePci || "--";
+      document.getElementById("cellTagRouterType").value = routerVendor.toUpperCase();
+      document.getElementById("cellTagRegion").value = profile?.iso_region_code || "EG-C";
+      document.getElementById("cellTagCustomLabel").value = profile?.custom_label || "";
+      visibleProfileFields = new Set(extractedProfileFields.map(field => field.key));
+      renderExtractedProfileFields(profile);
+      renderCustomFields(profile?.custom_fields || {});
+    }
+
+    async function openCellTagModal() {
       try {
         if (isoRegions.length === 0) {
           await loadIsoRegions();
         }
 
-        const tag = await loadCellTag(currentCellId);
-        currentCellTag = tag;
-        document.getElementById("cellTagCellId").value = currentCellId;
-        document.getElementById("cellTagRouterType").value = selectedRouterVendor.toUpperCase();
-        document.getElementById("cellTagRegion").value = tag?.iso_region_code || "EG-C";
-        document.getElementById("cellTagCustomLabel").value = tag?.custom_label || "";
-        setProfileField("cellProfileEnodeb", tag?.profile_enodeb_id || currentCellProfileSource.enodeb_id);
-        setProfileField("cellProfileTac", tag?.profile_tac || currentCellProfileSource.tac);
-        setProfileField("cellProfilePlmn", tag?.profile_plmn || currentCellProfileSource.plmn);
-        setProfileField("cellProfileTransmode", tag?.profile_transmode || currentCellProfileSource.transmode);
-        setProfileField("cellProfileCqi", tag?.profile_cqi0 || currentCellProfileSource.cqi0);
-        renderCustomFields(tag?.custom_fields || {});
+        let currentProfile = null;
+        if (currentCellId) {
+          currentProfile = await loadCellTag(currentCellId, currentPci, selectedRouterVendor);
+          currentCellTag = currentProfile;
+          updateCellProfileAction();
+        }
+
+        document.getElementById("savedProfileRouter").value = selectedRouterVendor;
+        const editCurrentProfile = document.getElementById("editCurrentProfile");
+        editCurrentProfile.textContent = hasProfileTag(currentProfile) ? "Edit current profile" : "Add current profile";
+        editCurrentProfile.disabled = !currentCellId;
+        loadSavedProfiles(selectedRouterVendor).catch(err => showErrorPopup("Saved profiles error", err.message || err));
+        setProfileBrowserMode();
         document.getElementById("cellTagModal").classList.add("visible");
       } catch (err) {
         showErrorPopup("Cell tag error", err.message || err);
@@ -1428,15 +1892,12 @@
 
     async function saveCellTag() {
       const payload = {
-        cell_id: document.getElementById("cellTagCellId").value,
-        router_vendor: selectedRouterVendor,
+        cell_id: activeProfileCellId || document.getElementById("cellTagCellId").value,
+        pci: activeProfilePci || readProfileField("cellTagPci"),
+        router_vendor: activeProfileRouterVendor || selectedRouterVendor,
         iso_region_code: document.getElementById("cellTagRegion").value,
         custom_label: document.getElementById("cellTagCustomLabel").value,
-        profile_enodeb_id: readProfileField("cellProfileEnodeb"),
-        profile_tac: readProfileField("cellProfileTac"),
-        profile_plmn: readProfileField("cellProfilePlmn"),
-        profile_transmode: readProfileField("cellProfileTransmode"),
-        profile_cqi0: readProfileField("cellProfileCqi"),
+        ...readExtractedProfileFields(),
         custom_fields: readCustomFields(),
       };
 
@@ -1447,11 +1908,15 @@
           body: JSON.stringify(payload),
         });
         const saved = await responseJsonOrError(res);
-        currentCellTag = saved.item;
-        setText("cell_id", cellDisplayLabel({
-          cell_id: currentCellId,
-          cell_tag: currentCellTag?.cell_tag,
-        }));
+        if (activeProfileCellId === currentCellId && (activeProfilePci || null) === (currentPci || null)) {
+          currentCellTag = saved.item;
+          setText("cell_id", cellCardProfileLabel({
+            cell_id: currentCellId,
+            cell_tag: currentCellTag?.cell_tag,
+            custom_label: currentCellTag?.custom_label,
+          }));
+          updateCellProfileAction();
+        }
         closeCellTagModal();
         refreshHistory();
       } catch (err) {
@@ -1607,8 +2072,9 @@
     }
 
     function updateIntervalStatus() {
+      const suffix = selectedRouterVendor === "huawei" ? " (locked for Huawei)" : "";
       document.getElementById("interval_status").textContent =
-        "Refresh interval: " + (refreshIntervalMs / 1000) + " seconds";
+        "Refresh interval: " + (refreshIntervalMs / 1000) + " seconds" + suffix;
     }
 
     function startRefreshTimer() {
@@ -1643,7 +2109,7 @@
 
     function formatTimeLabel(timeValue) {
       const date = new Date(timeValue);
-      if (customHistoryRange || historyRangeMinutes <= 1440) {
+      if (historyRangeMode === "now" || customHistoryRange || historyRangeMinutes <= 1440) {
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       }
       return date.toLocaleDateString([], { month: "short", day: "numeric" });
@@ -1659,6 +2125,35 @@
       return `${minutes / 1440}d`;
     }
 
+    function applyDefaultHistoryRange(value) {
+      const select = document.getElementById("historyRangeSelect");
+      const normalizedValue = String(value || "60").toLowerCase();
+
+      if (normalizedValue === "now") {
+        historyRangeMode = "now";
+        select.value = "now";
+        return;
+      }
+
+      const minutes = Number(normalizedValue);
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        historyRangeMode = "range";
+        historyRangeMinutes = 60;
+        select.value = "60";
+        return;
+      }
+
+      historyRangeMode = "range";
+      historyRangeMinutes = minutes;
+      if (![...select.options].some(option => option.value === String(minutes))) {
+        const option = document.createElement("option");
+        option.value = String(minutes);
+        option.textContent = formatRangeLabel(minutes);
+        select.appendChild(option);
+      }
+      select.value = String(minutes);
+    }
+
     function updateHistoryRangeStatus() {
       if (customHistoryRange) {
         const start = new Date(customHistoryRange.start).toLocaleString();
@@ -1667,6 +2162,14 @@
           selectedHistoryCellId
             ? `${start} to ${end} · filtered by Cell ${selectedHistoryCellId}`
             : `${start} to ${end}`;
+        return;
+      }
+
+      if (historyRangeMode === "now") {
+        document.getElementById("historyRangeStatus").textContent =
+          selectedHistoryCellId
+            ? `Showing latest sample · filtered by Cell ${selectedHistoryCellId}`
+            : "Showing latest sample";
         return;
       }
 
@@ -1763,24 +2266,15 @@
     }
 
     function chartTheme() {
-      if (currentTheme === "light") {
-        return {
-          background: "#ffffff",
-          axis: "#9ca3af",
-          grid: "#e5e7eb",
-          label: "#4b5563",
-          marker: "#374151",
-          point: "#111827",
-        };
-      }
-
+      const styles = getComputedStyle(document.documentElement);
+      const color = key => styles.getPropertyValue(key).trim();
       return {
-        background: "#030712",
-        axis: "#4b5563",
-        grid: "#374151",
-        label: "#9ca3af",
-        marker: "#d1d5db",
-        point: "#e5e7eb",
+        background: color("--chart"),
+        axis: color("--border"),
+        grid: color("--grid"),
+        label: color("--muted"),
+        marker: color("--text"),
+        point: color("--text"),
       };
     }
 
@@ -2018,8 +2512,10 @@
       }
 
       const cardRect = canvas.parentElement.getBoundingClientRect();
+      const profile = historyMetrics.some(historyMetric => historyMetric.key === metric.key)
+        ? `<strong>Cell/Tower Profile: ${escapeHtml(cellDisplayLabel(item))}</strong><br>` : "";
       tooltip.innerHTML = `
-        <strong>${metric.title}: ${value} ${metric.unit}</strong><br>
+        ${profile}<strong>${metric.title}: ${value} ${metric.unit}</strong><br>
         Avg: ${averageMetricValue(metric, items).toFixed(1)} ${metric.unit}<br>
         ${new Date(item.time).toLocaleString()}
       `;
@@ -2039,16 +2535,66 @@
       drawLanCharts(currentSpeedTestItems);
     }
 
+    function historyProfileKey(group) {
+      return JSON.stringify([group.pci, group.enodeb_id, group.tac].map(value => String(value ?? "")));
+    }
+
+    function updateHistoryOptions(select, options) {
+      const unchanged = select.options.length === options.length && options.every((option, index) =>
+        select.options[index].value === String(option.value) && select.options[index].textContent === option.label);
+      if (unchanged) return;
+      select.replaceChildren(...options.map(({value, label}) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        return option;
+      }));
+    }
+
     function renderCellFilter(groups) {
       const select = document.getElementById("historyCellFilter");
-      const previousValue = selectedHistoryCellId;
-      select.innerHTML = '<option value="">All cells</option>' + groups.map(group => `
-        <option value="${escapeHtml(group.cell_id)}">
-          ${escapeHtml(cellDisplayLabel(group))}
-        </option>
-      `).join("");
-      selectedHistoryCellId = groups.some(group => group.cell_id === previousValue) ? previousValue : "";
+      const cells = new Map();
+      groups.forEach(group => {
+        const id = String(group.cell_id);
+        if (!cells.has(id)) cells.set(id, cellCardProfileLabel(group));
+      });
+      // Keep an unavailable selection visible instead of silently showing different data.
+      if (selectedHistoryCellId && !cells.has(selectedHistoryCellId)) {
+        cells.set(selectedHistoryCellId, `${selectedHistoryCellId} (no samples in range)`);
+      }
+      updateHistoryOptions(select, [{value: "", label: "All cells"},
+        ...[...cells].map(([value, label]) => ({value, label}))]);
       select.value = selectedHistoryCellId;
+      renderHistoryProfileFilter(groups);
+    }
+
+    function renderHistoryProfileFilter(groups) {
+      const select = document.getElementById("historyProfileFilter");
+      const profiles = groups.filter(group => String(group.cell_id) === selectedHistoryCellId);
+      const options = [{value: "", label: "All sectors (PCI)"}, ...profiles.map(group =>
+        ({value: historyProfileKey(group), label: cellDisplayLabel(group)}))];
+      const selected = profiles.find(group => historyProfileKey(group) === selectedHistoryProfile);
+      if (selectedHistoryProfile && !selected) {
+        options.push({value: selectedHistoryProfile, label: "Selected sector (no samples in range)"});
+      }
+      updateHistoryOptions(select, options);
+      select.value = selectedHistoryProfile;
+      select.disabled = !selectedHistoryCellId;
+      document.getElementById("historyProfileDetails").textContent = selected
+        ? `${cellDisplayLabel(selected)} · ${selected.sample_count} samples · First seen ${formatGroupDate(selected.first_seen)}`
+        : selectedHistoryProfile ? "No samples for the selected sector in this range"
+        : selectedHistoryCellId ? `Cell ${selectedHistoryCellId} · All sectors (${profiles.length} profiles)`
+        : "All cells and sector profiles";
+    }
+
+    function setHistoryLoading(loading) {
+      document.getElementById("historyLoading").hidden = !loading;
+      if (loading) historyMetrics.forEach(metric => {
+        document.getElementById(metric.tooltipId).style.display = "none";
+      });
+      document.getElementById("historyRangeStatus").setAttribute("aria-busy", String(loading));
+      // A new selection replaces the active request; loading must never trap the controls.
+      document.getElementById("historyProfileFilter").disabled = !selectedHistoryCellId;
     }
 
     function cellGroupSortLabel(key) {
@@ -2061,8 +2607,8 @@
       if (key === "cell_label") {
         return cellDisplayLabel(group).toLowerCase();
       }
-      if (key === "last_seen") {
-        return new Date(group.last_seen || 0).getTime();
+      if (key === "first_seen" || key === "last_seen") {
+        return new Date(group[key] || 0).getTime();
       }
       const value = Number(group[key]);
       return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
@@ -2098,6 +2644,10 @@
       return value === null || value === undefined ? "--" : Number(value).toFixed(1);
     }
 
+    function formatGroupDate(value) {
+      return value ? new Date(value).toLocaleString() : "--";
+    }
+
     function renderCellGroups(groups) {
       const container = document.getElementById("cellGroupList");
       if (!groups || groups.length === 0) {
@@ -2108,6 +2658,7 @@
             <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
             <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
             <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+            <button class="cell-group-sort" data-sort-key="first_seen">First Seen${cellGroupSortLabel("first_seen")}</button>
             <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
           </div>
           <div class="cell-group-item">
@@ -2125,16 +2676,18 @@
           <button class="cell-group-sort" data-sort-key="avg_rsrp">Avg RSRP${cellGroupSortLabel("avg_rsrp")}</button>
           <button class="cell-group-sort" data-sort-key="avg_rsrq">Avg RSRQ${cellGroupSortLabel("avg_rsrq")}</button>
           <button class="cell-group-sort" data-sort-key="avg_sinr">Avg SINR${cellGroupSortLabel("avg_sinr")}</button>
+          <button class="cell-group-sort" data-sort-key="first_seen">First Seen${cellGroupSortLabel("first_seen")}</button>
           <button class="cell-group-sort" data-sort-key="last_seen">Latest Seen${cellGroupSortLabel("last_seen")}</button>
         </div>
       ` + sortedCellGroups(groups).map(group => `
-        <button class="cell-group-item" data-cell-id="${escapeHtml(group.cell_id)}" type="button">
+        <button class="cell-group-item" data-cell-id="${escapeHtml(group.cell_id)}" data-profile="${escapeHtml(historyProfileKey(group))}" type="button">
           <div class="cell-group-name">${escapeHtml(cellDisplayLabel(group))}</div>
           <div class="cell-group-stat">${Number(group.sample_count || 0)}</div>
           <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrp)}</div>
           <div class="cell-group-stat">${formatGroupAverage(group.avg_rsrq)}</div>
           <div class="cell-group-stat">${formatGroupAverage(group.avg_sinr)}</div>
-          <div class="cell-group-stat">${new Date(group.last_seen).toLocaleString()}</div>
+          <div class="cell-group-stat">${formatGroupDate(group.first_seen)}</div>
+          <div class="cell-group-stat">${formatGroupDate(group.last_seen)}</div>
         </button>
       `).join("");
 
@@ -2145,7 +2698,9 @@
         }
         button.addEventListener("click", () => {
           selectedHistoryCellId = button.dataset.cellId || "";
-          document.getElementById("historyCellFilter").value = selectedHistoryCellId;
+          selectedHistoryProfile = button.dataset.profile || "";
+          renderCellFilter(currentCellGroups);
+          updateHistoryRangeStatus();
           refreshHistory();
         });
       });
@@ -2183,46 +2738,115 @@
       `).join("");
     }
 
-    async function refreshHistory() {
-      try {
-        const params = new URLSearchParams({ limit: "500" });
-        if (customHistoryRange) {
-          params.set("start", customHistoryRange.start);
-          params.set("end", customHistoryRange.end);
-        } else {
-          params.set("minutes", String(historyRangeMinutes));
-        }
-        if (selectedHistoryCellId) {
-          params.set("cell_id", selectedHistoryCellId);
-        }
-
-        const res = await fetch(`/api/history?${params.toString()}`);
-        const payload = await responseJsonOrError(res);
-        const items = payload.items || [];
-        const groups = payload.cell_groups || [];
-        currentHistoryItems = items;
-        currentCellGroups = groups;
-        renderCellFilter(groups);
-        renderCellGroups(groups);
-        drawHistoryCharts(items);
-        renderHistoryTable(items);
-        updateHistoryRangeStatus();
-        document.getElementById("historyRangeStatus").classList.remove("error");
-      } catch (err) {
-        document.getElementById("historyRows").innerHTML =
-          `<tr><td colspan="8" class="error">Error fetching history: ${err}</td></tr>`;
-        document.getElementById("historyRangeStatus").classList.add("error");
-        document.getElementById("historyRangeStatus").textContent =
-          "Historical data error";
-        showErrorPopup("History error", err.message || err);
+    async function refreshHistory({ background = false } = {}) {
+      if (background && (historyRequest || Date.now() - historyLastRequestedAt < HISTORY_BACKGROUND_INTERVAL_MS)) return;
+      const params = new URLSearchParams({limit: "500", vendor: selectedRouterVendor});
+      if (historyRangeMode === "now") {
+        params.set("latest", "true");
+        params.set("limit", "1");
+      } else if (customHistoryRange) {
+        params.set("start", customHistoryRange.start);
+        params.set("end", customHistoryRange.end);
+      } else {
+        params.set("minutes", String(historyRangeMinutes));
       }
+      if (selectedHistoryCellId) params.set("cell_id", selectedHistoryCellId);
+      if (selectedHistoryCellId && selectedHistoryProfile) {
+        const [pci, enodeb, tac] = JSON.parse(selectedHistoryProfile);
+        params.set("pci", pci);
+        params.set("enodeb_id", enodeb);
+        params.set("tac", tac);
+      }
+      const key = params.toString();
+      if (historyRequest && historyRequestKey === key) return historyRequest;
+      historyController?.abort();
+      const controller = new AbortController();
+      historyController = controller;
+      historyRequestKey = key;
+      const version = ++historyRequestVersion;
+      historyLastRequestedAt = Date.now();
+      setHistoryLoading(!background);
+      let timeoutId;
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error("History request timed out. Change a filter or try again."));
+          controller.abort();
+        }, HISTORY_REQUEST_TIMEOUT_MS);
+      });
+      historyRequest = (async () => {
+        try {
+          const payload = await Promise.race([
+            fetch(`/api/history?${key}`, {signal: controller.signal}).then(responseJsonOrError),
+            timeout,
+          ]);
+          if (version !== historyRequestVersion) return;
+          const items = payload.items || [];
+          const groups = payload.cell_groups || [];
+          currentHistoryItems = items;
+          currentCellGroups = groups;
+          renderCellFilter(groups);
+          renderCellGroups(groups);
+          drawHistoryCharts(items);
+          renderHistoryTable(items);
+          updateHistoryRangeStatus();
+          document.getElementById("historyRangeStatus").classList.remove("error");
+        } catch (err) {
+          if (version !== historyRequestVersion || err.name === "AbortError") return;
+          if (background) {
+            console.warn("Background history refresh failed:", err.message || err);
+            return;
+          }
+          document.getElementById("historyRows").innerHTML =
+            `<tr><td colspan="8" class="error">Error fetching history: ${escapeHtml(err.message || err)}</td></tr>`;
+          document.getElementById("historyRangeStatus").classList.add("error");
+          document.getElementById("historyRangeStatus").textContent = "Historical data error";
+          showErrorPopup("History error", err.message || err);
+        } finally {
+          clearTimeout(timeoutId);
+          if (version === historyRequestVersion) {
+            historyController = null;
+            historyRequest = null;
+            historyRequestKey = null;
+            setHistoryLoading(false);
+          }
+        }
+      })();
+      return historyRequest;
     }
 
-    function setActiveIntervalButton(intervalMs) {
-      document.querySelectorAll(".interval-btn").forEach(button => {
-        const buttonInterval = Number(button.dataset.interval);
-        button.classList.toggle("active", buttonInterval === intervalMs);
-      });
+    function formatIntervalOption(intervalMs) {
+      const seconds = intervalMs / 1000;
+      return seconds < 60 ? `${seconds}s` : `${seconds / 60}m`;
+    }
+
+    function setActiveIntervalControl(intervalMs) {
+      const select = document.getElementById("refreshInterval");
+      const value = String(intervalMs);
+      if (![...select.options].some(option => option.value === value)) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = formatIntervalOption(intervalMs);
+        select.appendChild(option);
+      }
+      select.value = value;
+    }
+
+    function applyVendorIntervalPolicy() {
+      const intervalControl = document.getElementById("intervalControl");
+      const refreshSelect = document.getElementById("refreshInterval");
+
+      if (selectedRouterVendor === "huawei") {
+        refreshIntervalMs = HUAWEI_FIXED_INTERVAL_MS;
+        intervalControl.classList.add("locked");
+        refreshSelect.disabled = true;
+      } else {
+        refreshIntervalMs = configuredLiveFetchIntervalMs;
+        intervalControl.classList.remove("locked");
+        refreshSelect.disabled = false;
+        setActiveIntervalControl(refreshIntervalMs);
+      }
+
+      updateIntervalStatus();
     }
 
     async function refreshData() {
@@ -2245,6 +2869,7 @@
         setText("operator", data.operator);
         setText("pci", data.pci);
         currentCellId = data.cell_id || null;
+        currentPci = data.pci || null;
         currentCellTag = {
           cell_tag: data.cell_tag,
           router_vendor: data.cell_tag_router_vendor,
@@ -2258,7 +2883,8 @@
           transmode: data.transmode,
           cqi0: data.cqi0,
         };
-        setText("cell_id", cellDisplayLabel(data));
+        setText("cell_id", cellCardProfileLabel(data));
+        updateCellProfileAction();
 
         setText("rsrp", data.rsrp);
         setText("rsrq", data.rsrq);
@@ -2283,7 +2909,7 @@
         document.getElementById("raw").textContent =
           JSON.stringify(data.raw_signal, null, 2);
 
-        refreshHistory();
+        refreshHistory({ background: true });
 
       } catch (err) {
         clearLiveMetrics();
@@ -2298,12 +2924,11 @@
 
     document.getElementById("errorToastClose").addEventListener("click", hideErrorPopup);
 
-    document.querySelectorAll(".interval-btn").forEach(button => {
-      button.addEventListener("click", () => {
-        refreshIntervalMs = Number(button.dataset.interval);
-        setActiveIntervalButton(refreshIntervalMs);
-        startRefreshTimer();
-      });
+    document.getElementById("refreshInterval").addEventListener("change", event => {
+      configuredLiveFetchIntervalMs = Number(event.target.value);
+      refreshIntervalMs = configuredLiveFetchIntervalMs;
+      setActiveIntervalControl(refreshIntervalMs);
+      startRefreshTimer();
     });
 
     document.getElementById("manualRefresh").addEventListener("click", () => {
@@ -2312,7 +2937,14 @@
 
     document.getElementById("routerVendor").addEventListener("change", event => {
       selectedRouterVendor = event.target.value;
+      selectedHistoryCellId = "";
+      selectedHistoryProfile = "";
+      currentCellGroups = [];
+      renderCellFilter([]);
+      applyVendorIntervalPolicy();
+      startRefreshTimer();
       refreshData();
+      refreshHistory();
     });
 
     document.getElementById("runSpeedTest").addEventListener("click", () => {
@@ -2320,8 +2952,47 @@
     });
 
     document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+    document.querySelectorAll(".profile-tab").forEach(button => {
+      button.addEventListener("click", () => setProfileTab(button.dataset.profileTab));
+    });
     document.getElementById("editCellTag").addEventListener("click", openCellTagModal);
     document.getElementById("addCellProfileField").addEventListener("click", addCustomFieldRow);
+    document.getElementById("savedProfileRouter").addEventListener("change", event => {
+      loadSavedProfiles(event.target.value).catch(err => showErrorPopup("Saved profiles error", err.message || err));
+    });
+    document.getElementById("savedProfileCellSelect").addEventListener("change", renderSavedSectorOptions);
+    document.getElementById("savedProfileSelect").addEventListener("change", updateSavedProfileMeta);
+    document.getElementById("refreshSavedProfiles").addEventListener("click", () => {
+      loadSavedProfiles().catch(err => showErrorPopup("Saved profiles error", err.message || err));
+    });
+    document.getElementById("loadSavedProfile").addEventListener("click", () => {
+      const profile = selectedSavedProfile();
+      if (!profile) {
+        showErrorPopup("Saved profiles error", "No saved profile selected");
+        return;
+      }
+      populateProfileModal(profile);
+      setProfileEditorMode("identity");
+    });
+    document.getElementById("editCurrentProfile").addEventListener("click", async () => {
+      if (!currentCellId) {
+        showErrorPopup("Cell tag error", "No current Cell ID is available");
+        return;
+      }
+      try {
+        const profile = await loadCellTag(currentCellId, currentPci, selectedRouterVendor);
+        populateProfileModal(profile, {
+          cellId: currentCellId,
+          pci: currentPci,
+          routerVendor: selectedRouterVendor,
+        });
+        setProfileEditorMode("identity");
+      } catch (err) {
+        showErrorPopup("Cell tag error", err.message || err);
+      }
+    });
+    document.getElementById("backToSavedProfiles").addEventListener("click", setProfileBrowserMode);
+    document.getElementById("cellTagBrowseCancel").addEventListener("click", closeCellTagModal);
     document.getElementById("cellTagCancel").addEventListener("click", closeCellTagModal);
     document.getElementById("cellTagSave").addEventListener("click", saveCellTag);
     document.getElementById("cellTagModal").addEventListener("click", event => {
@@ -2332,31 +3003,39 @@
 
     document.getElementById("historyCellFilter").addEventListener("change", event => {
       selectedHistoryCellId = event.target.value;
+      selectedHistoryProfile = "";
+      renderHistoryProfileFilter(currentCellGroups);
       updateHistoryRangeStatus();
       refreshHistory();
     });
 
-    document.querySelectorAll(".history-range-btn").forEach(button => {
-      button.addEventListener("click", () => {
-        historyRangeMinutes = Number(button.dataset.minutes);
-        customHistoryRange = null;
-        document.querySelectorAll(".history-range-btn").forEach(item => {
-          item.classList.toggle("active", item === button);
-        });
-        updateHistoryRangeStatus();
-        refreshHistory();
-        if (syncRangesEnabled) {
-          syncLanRangeToCellular();
-        }
-      });
+    document.getElementById("historyProfileFilter").addEventListener("change", event => {
+      selectedHistoryProfile = event.target.value;
+      renderHistoryProfileFilter(currentCellGroups);
+      updateHistoryRangeStatus();
+      refreshHistory();
+    });
+
+    document.getElementById("historyRangeSelect").addEventListener("change", event => {
+      if (event.target.value === "now") {
+        historyRangeMode = "now";
+      } else {
+        historyRangeMode = "range";
+        historyRangeMinutes = Number(event.target.value);
+      }
+      customHistoryRange = null;
+      updateHistoryRangeStatus();
+      refreshHistory();
+      if (syncRangesEnabled) {
+        syncLanRangeToCellular();
+      }
     });
 
     document.getElementById("historyApplyCustom").addEventListener("click", () => {
       try {
+        historyRangeMode = "custom";
         customHistoryRange = customRangeFromInputs("historyStart", "historyEnd");
-        document.querySelectorAll(".history-range-btn").forEach(item => {
-          item.classList.remove("active");
-        });
+        document.getElementById("historyRangeSelect").value = "60";
         updateHistoryRangeStatus();
         refreshHistory();
         if (syncRangesEnabled) {
@@ -2438,15 +3117,30 @@
     });
 
     applyTheme(currentTheme);
-    loadRouters().then(refreshData);
+    applyDefaultHistoryRange(defaultCellularHistoryRange);
+    setActiveIntervalControl(configuredLiveFetchIntervalMs);
+    applyVendorIntervalPolicy();
+    loadRouters()
+      .catch(() => null)
+      .then(() => {
+        refreshData();
+        refreshHistory();
+        startRefreshTimer();
+      });
     refreshSpeedTest();
     setDefaultCustomRange();
     updateHistoryRangeStatus();
     updateLanRangeStatus();
     updateSyncRangesButton();
-    refreshHistory();
-    startRefreshTimer();
-    window.addEventListener("resize", refreshHistory);
+    window.addEventListener('cpe-theme-change', () => {
+      currentTheme = window.CPETheme.current.mode;
+      drawHistoryCharts(currentHistoryItems);
+      drawLanCharts(currentSpeedTestItems);
+    });
+    window.addEventListener("resize", () => {
+      drawHistoryCharts(currentHistoryItems);
+      drawLanCharts(currentSpeedTestItems);
+    });
   </script>
 </body>
 </html>
